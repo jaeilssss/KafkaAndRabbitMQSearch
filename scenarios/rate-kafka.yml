@@ -1,0 +1,10 @@
+# AC1 확인용: 5,000 msg/s 고정, measure 20s
+name: rate-kafka
+broker: kafka
+messageSizeBytes: 1024
+producers: 1
+consumers: 1
+warmupSeconds: 2
+measureSeconds: 20
+cooldownSeconds: 15
+targetRatePerSec: 5000

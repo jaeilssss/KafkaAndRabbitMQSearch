@@ -1,0 +1,14 @@
+# AC5 smoke: 1KB x 10,000, 1 producer / 1 consumer, queue 1
+name: smoke-rabbitmq
+broker: rabbitmq
+messageSizeBytes: 1024
+messageCount: 10000
+producers: 1
+consumers: 1
+warmupSeconds: 0
+measureSeconds: 60
+cooldownSeconds: 15
+rabbitmq:
+  queueType: classic
+  publisherConfirms: false
+  prefetch: 250

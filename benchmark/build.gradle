@@ -1,0 +1,14 @@
+plugins {
+    id 'org.springframework.boot'
+}
+
+dependencies {
+    implementation project(':common')
+    implementation project(':producer')
+    implementation project(':consumer')
+    implementation 'org.springframework.boot:spring-boot-starter'
+}
+
+bootJar {
+    archiveFileName = 'benchmark.jar'
+}

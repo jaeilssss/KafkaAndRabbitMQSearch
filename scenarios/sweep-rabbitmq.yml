@@ -1,0 +1,15 @@
+# step load: 2K -> 4K msg/s, 각 step 2회 반복, step 당 warm-up 2s + measure 10s
+name: sweep-rabbitmq
+broker: rabbitmq
+messageSizeBytes: 1024
+producers: 1
+consumers: 1
+warmupSeconds: 2
+measureSeconds: 10
+cooldownSeconds: 15
+rateSteps: [2000, 4000]
+repetitions: 2
+pauseBetweenRunsSeconds: 3
+rabbitmq:
+  queueType: classic
+  prefetch: 250

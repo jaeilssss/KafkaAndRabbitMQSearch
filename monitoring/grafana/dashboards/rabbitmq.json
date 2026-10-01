@@ -1,0 +1,148 @@
+{
+ "uid": "mq-rabbitmq",
+ "title": "RabbitMQ (single node)",
+ "schemaVersion": 39,
+ "version": 1,
+ "refresh": "5s",
+ "time": {
+  "from": "now-15m",
+  "to": "now"
+ },
+ "panels": [
+  {
+   "id": 1,
+   "type": "timeseries",
+   "title": "Ready messages",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 0,
+    "w": 12,
+    "h": 8
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "none"
+    },
+    "overrides": []
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "sum by(queue)(rabbitmq_detailed_queue_messages_ready)",
+     "legendFormat": "{{queue}}"
+    },
+    {
+     "refId": "B",
+     "expr": "rabbitmq_queue_messages_ready",
+     "legendFormat": "total"
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "type": "timeseries",
+   "title": "Unacked messages",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 0,
+    "w": 12,
+    "h": 8
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "none"
+    },
+    "overrides": []
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "rabbitmq_queue_messages_unacked",
+     "legendFormat": "unacked"
+    }
+   ]
+  },
+  {
+   "id": 3,
+   "type": "timeseries",
+   "title": "Publish / deliver rate",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 8,
+    "w": 12,
+    "h": 8
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "ops"
+    },
+    "overrides": []
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "rate(rabbitmq_channel_messages_published_total[30s])",
+     "legendFormat": "published"
+    },
+    {
+     "refId": "B",
+     "expr": "rate(rabbitmq_channel_messages_delivered_total[30s])",
+     "legendFormat": "delivered"
+    }
+   ]
+  },
+  {
+   "id": 4,
+   "type": "timeseries",
+   "title": "Connections / channels / consumers",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 8,
+    "w": 12,
+    "h": 8
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "none"
+    },
+    "overrides": []
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "rabbitmq_connections",
+     "legendFormat": "connections"
+    },
+    {
+     "refId": "B",
+     "expr": "rabbitmq_channels",
+     "legendFormat": "channels"
+    },
+    {
+     "refId": "C",
+     "expr": "rabbitmq_consumers",
+     "legendFormat": "consumers"
+    }
+   ]
+  }
+ ],
+ "tags": [
+  "mq-study"
+ ]
+}

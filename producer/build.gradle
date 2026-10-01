@@ -1,0 +1,5 @@
+dependencies {
+    api project(':common')
+    api 'org.springframework.kafka:spring-kafka'
+    api 'org.springframework.amqp:spring-rabbit'
+}
