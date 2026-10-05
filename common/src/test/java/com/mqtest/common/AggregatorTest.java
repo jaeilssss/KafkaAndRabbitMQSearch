@@ -91,6 +91,6 @@ class AggregatorTest {
         LatencyStats.Percentiles lat = new LatencyStats.Percentiles(100, p99 / 2, p99 / 3, p99 / 2, p99, p99, p99);
         return new RunResult("exp", Broker.KAFKA, "t", 1024, 1, 1, 100, 100 - lost, lost, 100, 100, 1.0,
                 consumerRate, consumerRate, 0, 0, lat, null, Map.of(),
-                target == 0 ? null : target, 1.0, cpu, saturated);
+                target == 0 ? null : target, 1.0, cpu, saturated, null);
     }
 }

@@ -1,0 +1,73 @@
+[ {
+  "targetRatePerSec" : 2000.0,
+  "runs" : 2,
+  "producerMsgPerSec" : {
+    "mean" : 2000.04257261235,
+    "median" : 2000.04257261235,
+    "stddev" : 0.06020676577118292
+  },
+  "consumerMsgPerSec" : {
+    "mean" : 2000.047255350505,
+    "median" : 2000.047255350505,
+    "stddev" : 0.0116618732587498
+  },
+  "p50Ms" : {
+    "mean" : 0.252927,
+    "median" : 0.252927,
+    "stddev" : 0.0028963093757400906
+  },
+  "p95Ms" : {
+    "mean" : 0.36044699999999996,
+    "median" : 0.36044699999999996,
+    "stddev" : 0.0032583480477076116
+  },
+  "p99Ms" : {
+    "mean" : 0.901119,
+    "median" : 0.901119,
+    "stddev" : 0.01448154687870053
+  },
+  "lost" : {
+    "mean" : 0.0,
+    "median" : 0.0,
+    "stddev" : 0.0
+  },
+  "lostTotal" : 0,
+  "achievedRatio" : 1.0000236276752525,
+  "generatorSaturated" : false
+}, {
+  "targetRatePerSec" : 4000.0,
+  "runs" : 2,
+  "producerMsgPerSec" : {
+    "mean" : 4000.0636010114818,
+    "median" : 4000.0636010114818,
+    "stddev" : 0.001343545608117591
+  },
+  "consumerMsgPerSec" : {
+    "mean" : 3999.951542239668,
+    "median" : 3999.951542239668,
+    "stddev" : 0.020517478923534862
+  },
+  "p50Ms" : {
+    "mean" : 0.249983,
+    "median" : 0.249983,
+    "stddev" : 0.0016291740238538058
+  },
+  "p95Ms" : {
+    "mean" : 0.40819099999999997,
+    "median" : 0.40819099999999997,
+    "stddev" : 0.005249560743528958
+  },
+  "p99Ms" : {
+    "mean" : 0.962815,
+    "median" : 0.962815,
+    "stddev" : 0.020636204302148194
+  },
+  "lost" : {
+    "mean" : 0.0,
+    "median" : 0.0,
+    "stddev" : 0.0
+  },
+  "lostTotal" : 0,
+  "achievedRatio" : 0.999987885559917,
+  "generatorSaturated" : false
+} ]

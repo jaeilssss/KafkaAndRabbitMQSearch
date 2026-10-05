@@ -108,4 +108,18 @@ class ScenarioLoaderTest {
         assertThat(step.producers()).isEqualTo(3);
         assertThat(step.messageCount()).isEqualTo(Long.MAX_VALUE);
     }
+
+    @Test
+    void validatesWarmupMessages() throws IOException {
+        Scenario ok = ScenarioLoader.parse("name: x\nbroker: kafka\nmessageCount: 10000\nwarmupMessages: 1000\n");
+        assertThat(ok.warmupMessages()).isEqualTo(1000);
+        assertThat(ScenarioLoader.parse("name: x\nbroker: kafka\n").warmupMessages()).isZero();
+
+        assertThatThrownBy(() -> ScenarioLoader.parse("name: x\nbroker: kafka\nwarmupMessages: 10\nwarmupSeconds: 5\n"))
+                .hasRootCauseInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> ScenarioLoader.parse("name: x\nbroker: kafka\nmessageCount: 100\nwarmupMessages: 100\n"))
+                .hasRootCauseInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> ScenarioLoader.parse("name: x\nbroker: kafka\nwarmupMessages: 10\ntargetRatePerSec: 100\n"))
+                .hasRootCauseInstanceOf(IllegalArgumentException.class);
+    }
 }

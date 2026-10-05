@@ -31,13 +31,15 @@ public final class Aggregator {
             int runs,
             Stat producerMsgPerSec,
             Stat consumerMsgPerSec,
+            Stat consumerMBPerSec,
             Stat p50Ms,
             Stat p95Ms,
             Stat p99Ms,
             Stat lost,
             long lostTotal,
             Double achievedRatio,
-            boolean generatorSaturated) {
+            boolean generatorSaturated,
+            ResourceMetrics resources) {
     }
 
     /** @param targetRatePerSec rate 제어를 쓰지 않았으면 null */
@@ -48,13 +50,15 @@ public final class Aggregator {
                 runs.size(),
                 stat(runs, RunResult::producerMsgPerSec),
                 consumer,
+                stat(runs, RunResult::consumerMBPerSec),
                 stat(runs, r -> r.latency().p50Ms()),
                 stat(runs, r -> r.latency().p95Ms()),
                 stat(runs, r -> r.latency().p99Ms()),
                 stat(runs, RunResult::lost),
                 runs.stream().mapToLong(RunResult::lost).sum(),
                 targetRatePerSec == null ? null : consumer.mean() / targetRatePerSec,
-                runs.stream().anyMatch(RunResult::generatorSaturated));
+                runs.stream().anyMatch(RunResult::generatorSaturated),
+                ResourceMetrics.average(runs.stream().map(RunResult::resources).toList()));
     }
 
     private static Stat stat(List<RunResult> runs, ToDoubleFunction<RunResult> f) {

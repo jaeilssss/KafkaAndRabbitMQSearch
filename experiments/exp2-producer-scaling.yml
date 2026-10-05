@@ -1,0 +1,34 @@
+# Exp 2. Producer Scaling (연구 계획서 §11)
+# producer 1/2/4/8/16/32, consumer 1 / 1KB / Kafka partition 1 / RabbitMQ queue 1, 무제한 rate(시간 기반 종료)
+# 내구성은 각 브로커 기본값: Kafka acks=1, RabbitMQ publisher confirm OFF + classic queue.
+# producer 수가 많을수록 부하 생성기(러너 JVM)가 병목일 수 있으니 결과의 generatorSaturated 를 반드시 확인한다.
+experiment: exp2-producer-scaling
+description: producer 수 증가에 따른 처리량 확장과 포화 지점 관찰
+brokers: [kafka, rabbitmq]
+base:
+  messageSizeBytes: 1024
+  consumers: 1
+  messageCount: 2147483647      # 시간 기반 종료 (deadline 이 먼저 도달)
+  kafka:
+    partitions: 1
+    replicationFactor: 1
+    acks: "1"
+  rabbitmq:
+    queueType: classic
+    publisherConfirms: false
+    prefetch: 250
+vary:
+  producers: [1, 2, 4, 8, 16, 32]
+profiles:
+  full:
+    warmupSeconds: 120
+    measureSeconds: 300
+    cooldownSeconds: 60
+    repetitions: 3
+    pauseBetweenRunsSeconds: 10
+  quick:
+    warmupSeconds: 5
+    measureSeconds: 15
+    cooldownSeconds: 5
+    repetitions: 1
+    pauseBetweenRunsSeconds: 3

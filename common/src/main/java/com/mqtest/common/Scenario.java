@@ -7,7 +7,10 @@ import java.util.List;
  *
  * <p>시간 의미: 시작 후 {@code warmupSeconds} 동안의 샘플은 측정에서 제외하고,
  * 이후 {@code measureSeconds} 까지(또는 {@code messageCount} 발행 완료 시) 발행한다.
- * 발행 종료 후 최대 {@code cooldownSeconds} 동안 consumer 가 남은 메시지를 소비하길 기다린다.
+ * {@code warmupMessages} 는 개수 기반 warm-up 으로, sequence 가 N 미만인 메시지를 측정에서 제외한다
+ * (warmupSeconds 와 동시 사용 불가, rate 제어와도 함께 쓸 수 없다).
+ * 발행 종료 후 consumer 가 남은 메시지를 모두 소비할 때까지 기다리되, 소비가 {@code cooldownSeconds} 동안
+ * 전혀 진행되지 않으면 중단한다(그때 남은 메시지가 lost).
  *
  * <p>rate 제어: {@code targetRatePerSec}(전체 producer 합계 msg/s) 또는 {@code rateSteps}(단계 상승, 각 step 이
  * {@code repetitions} 회 반복)를 지정할 수 있다. 둘은 동시에 쓸 수 없고, 쓰면 시간 기반으로 종료한다
@@ -21,6 +24,7 @@ public record Scenario(
         Integer producers,
         Integer consumers,
         Integer warmupSeconds,
+        Integer warmupMessages,
         Integer measureSeconds,
         Integer cooldownSeconds,
         Integer consumerDelayMs,
@@ -61,12 +65,27 @@ public record Scenario(
         producers = orDefault(producers, 1);
         consumers = orDefault(consumers, 1);
         warmupSeconds = orDefault(warmupSeconds, 0);
+        warmupMessages = orDefault(warmupMessages, 0);
         measureSeconds = orDefault(measureSeconds, 60);
         cooldownSeconds = orDefault(cooldownSeconds, 10);
         consumerDelayMs = orDefault(consumerDelayMs, 0);
         kafka = kafka == null ? KafkaOptions.defaults() : kafka;
         rabbitmq = rabbitmq == null ? RabbitOptions.defaults() : rabbitmq;
 
+        if (warmupMessages < 0) {
+            throw new IllegalArgumentException("warmupMessages must be >= 0");
+        }
+        if (warmupMessages > 0) {
+            if (warmupSeconds > 0) {
+                throw new IllegalArgumentException("warmupMessages and warmupSeconds cannot be used together");
+            }
+            if (rateControlled) {
+                throw new IllegalArgumentException("warmupMessages cannot be combined with targetRatePerSec/rateSteps");
+            }
+            if (warmupMessages >= messageCount) {
+                throw new IllegalArgumentException("warmupMessages must be < messageCount");
+            }
+        }
         if (messageSizeBytes < MIN_MESSAGE_SIZE) {
             throw new IllegalArgumentException("messageSizeBytes must be >= " + MIN_MESSAGE_SIZE);
         }
@@ -81,7 +100,7 @@ public record Scenario(
     /** 단계 상승 시나리오에서 한 step 의 Run 용 시나리오를 만든다(rateSteps 는 제거). */
     public Scenario withTargetRate(Double rate) {
         return new Scenario(name, broker, messageSizeBytes, messageCount, producers, consumers, warmupSeconds,
-                measureSeconds, cooldownSeconds, consumerDelayMs, rate, null, repetitions, pauseBetweenRunsSeconds,
+                warmupMessages, measureSeconds, cooldownSeconds, consumerDelayMs, rate, null, repetitions, pauseBetweenRunsSeconds,
                 kafka, rabbitmq);
     }
 

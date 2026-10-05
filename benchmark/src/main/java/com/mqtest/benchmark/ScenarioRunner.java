@@ -4,6 +4,7 @@ import com.mqtest.common.Broker;
 import com.mqtest.common.GeneratorHealth;
 import com.mqtest.common.PacedLoop;
 import com.mqtest.common.RatePacer;
+import com.mqtest.common.ResourceMetrics;
 import com.mqtest.common.LatencyStats;
 import com.mqtest.common.MessageConsumerGroup;
 import com.mqtest.common.MessagePublisher;
@@ -41,10 +42,24 @@ final class ScenarioRunner {
     private final LatencyStats scheduleLag = new LatencyStats();
     private volatile long lastMeasuredReceiveNanos;
     private volatile long measureStartNanos = Long.MAX_VALUE;
+    private final AtomicLong firstMeasuredSendNanos = new AtomicLong(Long.MAX_VALUE);
+    private final ResourceCollector collector;
+    private final Instant wallRef = Instant.now();
+    private final long nanoRef = System.nanoTime();
 
     ScenarioRunner(Scenario scenario, Map<String, String> environment) {
+        this(scenario, environment, null);
+    }
+
+    /** @param collector null 이면 자원 지표를 수집하지 않는다 */
+    ScenarioRunner(Scenario scenario, Map<String, String> environment, ResourceCollector collector) {
         this.s = scenario;
         this.environment = environment;
+        this.collector = collector;
+    }
+
+    private Instant wallClock(long nanos) {
+        return wallRef.plusNanos(nanos - nanoRef);
     }
 
     RunResult run() throws Exception {
@@ -89,7 +104,11 @@ final class ScenarioRunner {
 
             awaitDrain(producersDoneNanos);
 
-            return buildResult(startedAt, measureStart, deadlineNanos, producersDoneNanos, cpu.load());
+            long windowStart = windowStart(measureStart);
+            long windowEnd = Math.min(producersDoneNanos, deadlineNanos);
+            ResourceMetrics resources = collector == null ? null
+                    : collector.collect(s.broker(), wallClock(windowStart), wallClock(windowEnd));
+            return buildResult(startedAt, measureStart, deadlineNanos, producersDoneNanos, cpu.load(), resources);
         } finally {
             publishers.forEach(MessagePublisher::close);
             deleteTopology(resource);
@@ -105,10 +124,19 @@ final class ScenarioRunner {
             }
             publisher.publish(Payload.encode(seq, now, s.messageSizeBytes()));
             sent.incrementAndGet();
-            if (now >= measureStart) {
+            if (seq >= s.warmupMessages() && now >= measureStart) {
                 measuredSent.incrementAndGet();
+                if (s.warmupMessages() > 0) {
+                    firstMeasuredSendNanos.accumulateAndGet(now, Math::min);
+                }
             }
         }
+    }
+
+    /** 개수 기반 warm-up 이면 첫 측정 메시지를 발행한 시각, 아니면 measureStart. */
+    private long windowStart(long measureStart) {
+        long first = firstMeasuredSendNanos.get();
+        return s.warmupMessages() > 0 && first != Long.MAX_VALUE ? first : measureStart;
     }
 
     private void producePaced(MessagePublisher publisher, RatePacer pacer, AtomicLong sequence,
@@ -134,25 +162,43 @@ final class ScenarioRunner {
         }
         received.incrementAndGet();
         long sentNanos = Payload.sendNanos(payload);
-        if (sentNanos >= measureStartNanos) { // warm-up 구간에 보낸 메시지는 집계에서 제외
+        if (sentNanos >= measureStartNanos && Payload.sequence(payload) >= s.warmupMessages()) { // warm-up 구간에 보낸 메시지는 집계에서 제외
             latency.recordNanos(System.nanoTime() - sentNanos);
             measuredReceived.incrementAndGet();
             lastMeasuredReceiveNanos = now;
         }
     }
 
+    /**
+     * 발행 종료 후 consumer 가 남은 메시지를 모두 소비할 때까지 기다린다. 소비가 {@code cooldownSeconds} 동안
+     * 전혀 진행되지 않으면 중단한다(과부하로 쌓인 backlog 가 소비되는 중이면 계속 기다린다). 절대 상한은 30분.
+     * 중단 시점에 남은 메시지가 {@code lost} 로 보고된다.
+     */
     private void awaitDrain(long producersDoneNanos) throws InterruptedException {
-        long limit = producersDoneNanos + TimeUnit.SECONDS.toNanos(s.cooldownSeconds());
-        while (received.get() < sent.get() && System.nanoTime() < limit) {
+        long stallLimit = TimeUnit.SECONDS.toNanos(s.cooldownSeconds());
+        long hardLimit = producersDoneNanos + TimeUnit.MINUTES.toNanos(30);
+        long lastReceived = received.get();
+        long lastProgress = producersDoneNanos;
+        while (received.get() < sent.get()) {
+            long now = System.nanoTime();
+            long current = received.get();
+            if (current != lastReceived) {
+                lastReceived = current;
+                lastProgress = now;
+            }
+            if (now - lastProgress > stallLimit || now > hardLimit) {
+                break;
+            }
             Thread.sleep(50);
         }
     }
 
     private RunResult buildResult(String startedAt, long measureStart, long deadlineNanos, long producersDoneNanos,
-                                  double cpuLoad) {
+                                  double cpuLoad, ResourceMetrics resources) {
+        long windowStart = windowStart(measureStart);
         // 발행 윈도우는 measure 구간 끝(deadline)을 넘지 않는다(flush 시간 제외).
-        double producerWindow = Math.max(nanosToSeconds(Math.min(producersDoneNanos, deadlineNanos) - measureStart), 1e-9);
-        double consumerWindow = Math.max(nanosToSeconds(lastMeasuredReceiveNanos - measureStart), 1e-9);
+        double producerWindow = Math.max(nanosToSeconds(Math.min(producersDoneNanos, deadlineNanos) - windowStart), 1e-9);
+        double consumerWindow = Math.max(nanosToSeconds(lastMeasuredReceiveNanos - windowStart), 1e-9);
         double producerRate = measuredSent.get() / producerWindow;
         double consumerRate = lastMeasuredReceiveNanos == 0 ? 0 : measuredReceived.get() / consumerWindow;
         double bytes = s.messageSizeBytes();
@@ -169,7 +215,7 @@ final class ScenarioRunner {
                 producerRate, consumerRate,
                 producerRate * bytes / 1_000_000.0, consumerRate * bytes / 1_000_000.0,
                 latency.snapshot(), s, environment,
-                s.targetRatePerSec(), lagP99, cpuLoad, saturated);
+                s.targetRatePerSec(), lagP99, cpuLoad, saturated, resources);
     }
 
     private static double nanosToSeconds(long nanos) {

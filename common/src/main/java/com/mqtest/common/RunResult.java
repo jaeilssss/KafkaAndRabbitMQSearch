@@ -26,5 +26,6 @@ public record RunResult(
         Double targetRatePerSec,
         double scheduleLagP99Ms,
         double generatorProcessCpuLoad,
-        boolean generatorSaturated) {
+        boolean generatorSaturated,
+        ResourceMetrics resources) {
 }

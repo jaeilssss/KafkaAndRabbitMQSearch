@@ -1,0 +1,2 @@
+startedAt,scenario,broker,messageSizeBytes,producers,consumers,sent,received,lost,producerMsgPerSec,consumerMsgPerSec,producerMBPerSec,consumerMBPerSec,p50Ms,p95Ms,p99Ms,p999Ms,maxMs
+2026-10-01T13:54:39.784945Z,exp1-baseline-rabbitmq-messageCount-10000,RABBITMQ,1024,1,1,10000,10000,0,54251.50,26524.24,55.5535,27.1608,121.242,170.525,174.326,174.719,174.719

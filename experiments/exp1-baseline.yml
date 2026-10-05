@@ -1,0 +1,37 @@
+# Exp 1. Baseline (연구 계획서 §10)
+# producer 1 / consumer 1 / 1KB / Kafka partition 1 / RabbitMQ queue 1, 메시지 수 10K / 100K / 1M (무제한 rate, 개수 기반 종료)
+# 내구성은 각 브로커 기본값: Kafka acks=1, RabbitMQ publisher confirm OFF + classic queue.
+#
+# 개수 기반 실험이라 시간 기반 warm-up 대신 warmupMessages 를 쓴다.
+# measureSeconds 는 "시간 상한(안전장치)" 이다. 메시지 수가 먼저 채워지므로 정상 실행에서는 도달하지 않는다.
+experiment: exp1-baseline
+description: 기본 조건에서 Kafka 와 RabbitMQ 의 throughput / latency 비교
+brokers: [kafka, rabbitmq]
+base:
+  messageSizeBytes: 1024
+  producers: 1
+  consumers: 1
+  kafka:
+    partitions: 1
+    replicationFactor: 1
+    acks: "1"
+  rabbitmq:
+    queueType: classic
+    publisherConfirms: false
+    prefetch: 250
+vary:
+  messageCount: [10000, 100000, 1000000]
+profiles:
+  full:
+    measureSeconds: 600
+    cooldownSeconds: 60
+    repetitions: 3
+    pauseBetweenRunsSeconds: 10
+    warmupMessagesPercent: 10   # 메시지 수의 10%, 최소 1,000개
+    warmupMessagesMin: 1000
+  quick:
+    measureSeconds: 600
+    cooldownSeconds: 5
+    repetitions: 1
+    pauseBetweenRunsSeconds: 3
+    warmupMessages: 1000

@@ -13,7 +13,8 @@ Kafka와 RabbitMQ의 처리량·지연·내구성·장애 복구 특성을 재�
 | `producer/` | `KafkaMessagePublisher`(Spring Kafka), `RabbitMessagePublisher`(Spring AMQP) |
 | `consumer/` | `KafkaMessageConsumerGroup`, `RabbitMessageConsumerGroup` |
 | `benchmark/` | Spring Boot 러너 (`benchmark.jar`), topic/queue 생성·정리, 집계 |
-| `scenarios/` | 실험 조건 YAML |
+| `scenarios/` | 단일 시나리오 YAML (smoke / rate / sweep) |
+| `experiments/` | 실험 정의 YAML (Exp 1, Exp 2). 브로커 × 변수값으로 확장되어 자동 실행 |
 | `scripts/` | `up.sh`, `down.sh`, `run-scenario.sh`, `collect-env.sh` |
 | `results/`, `graphs/`, `paper/` | 산출물 |
 
@@ -48,7 +49,7 @@ producers: 4
 consumers: 4
 warmupSeconds: 120          # 이 구간에 보낸 메시지는 집계 제외
 measureSeconds: 300         # 발행 최대 시간 (messageCount 도달 시 먼저 종료)
-cooldownSeconds: 60         # 발행 종료 후 consumer drain 대기 최대 시간
+cooldownSeconds: 60         # 발행 종료 후 consumer 가 남은 메시지를 소비하는 동안, 소비가 이 시간 동안 멈추면 중단
 consumerDelayMs: 0          # Exp 8 slow consumer
 kafka:    { partitions: 1, replicationFactor: 1, acks: "1", lingerMs: 0, batchSizeBytes: 16384, compression: none }
 rabbitmq: { queueType: classic, publisherConfirms: false, prefetch: 250 }
@@ -80,10 +81,75 @@ pauseBetweenRunsSeconds: 5      # Run 사이 대기 (기본 5)
 - **achievedRatio** = 소비 처리량 ÷ 목표 rate. 1 보다 눈에 띄게 낮아지고 P99 가 급등하는 step 이 Saturation 후보 구간이다(판정은 사람이 한다).
 - **generatorSaturated** = 측정 구간 schedule lag P99 > 10ms 이거나 러너 JVM 평균 CPU > 80%(전체 코어 대비). `true` 인 step 은 브로커 한계가 아니라 부하 생성기 한계일 수 있으니 결과를 그대로 믿지 말 것.
 
+## 실험 실행 (Exp 1 · Exp 2)
+
+실험 정의(`experiments/*.yml`)는 `base`(공통 Scenario 필드) + `vary`(바꿀 변수 1개와 값 목록) + `profiles`(실행 시간 조건)로 이루어지며,
+정의된 브로커마다 변수값 하나가 **포인트**가 된다. 포인트는 프로파일의 `repetitions` 만큼 Run 을 반복해 집계한다.
+
+| 실험 | 변수 | 포인트 수 | 종료 방식 |
+|------|------|-----------|-----------|
+| `exp1-baseline.yml` | `messageCount` 10K / 100K / 1M (producer 1, consumer 1, 1KB, partition 1 / queue 1) | 6 | 메시지 수 도달 (`warmupMessages` 로 앞부분 제외) |
+| `exp2-producer-scaling.yml` | `producers` 1 / 2 / 4 / 8 / 16 / 32 | 12 | 시간 (warm-up + measure) |
+
+```bash
+./scripts/run-experiment.sh experiments/exp2-producer-scaling.yml --profile=quick --dry-run   # 계획과 소요 시간 상한만 출력
+./scripts/run-experiment.sh experiments/exp2-producer-scaling.yml --profile=quick             # 개발/검증용 (약 10분)
+./scripts/run-experiment.sh experiments/exp2-producer-scaling.yml --profile=full              # 계획서 조건
+./scripts/run-experiment.sh experiments/exp1-baseline.yml --profile=quick --brokers=kafka     # 브로커 한정
+```
+
+옵션: `--profile=<full|quick>`(필수), `--brokers=kafka,rabbitmq`, `--force`(DONE 포인트도 재실행), `--dry-run`, `--prometheus-url=http://localhost:9090`, `--results-dir=results`.
+
+| 프로파일 | warm-up | measure | cool-down | 반복 | 용도 |
+|----------|---------|---------|-----------|------|------|
+| `full` | 120s | 300s | 60s | 3회 | 계획서 §24 조건 |
+| `quick` | 5s | 15s | 5s | 1회 | 도구/설정 검증 (**결과 해석 금지**) |
+
+- Exp 1 은 개수 기반이라 시간 warm-up 대신 `warmupMessages`(full: 10%, 최소 1,000개 / quick: 1,000개)를 쓰고, `measureSeconds: 600` 은 시간 **상한**(안전장치)일 뿐이다.
+- **소요 시간(추정)**: Exp 2 full ≈ 36 Run, 약 5시간. Exp 1 full 은 개수 기반이라 이보다 훨씬 짧다. `--dry-run` 으로 확인한다. 발행이 소비보다 훨씬 빠른 과부하 포인트(예: Kafka producers=32, consumer 1)는 backlog 를 다 소비할 때까지 기다리므로 추정보다 길어질 수 있다.
+- `lost` 는 발행 종료 후 소비가 `cooldownSeconds` 동안 멈췄을 때 남은 메시지 수다. 소비가 진행 중이면 backlog 를 끝까지 기다린다(최대 30분). 과부하로 쌓인 backlog 는 latency 에 그대로 반영된다.
+- 중단 후 같은 명령을 다시 실행하면 `DONE` 파일이 있는 포인트는 건너뛴다.
+
+### 결과 구조
+
+```
+results/<experiment>/<profile>/
+├── experiment-meta.json            # 정의 SHA-256, 프로파일, git revision, 시작 시각, 환경, 떠 있던 mqt-* 컨테이너
+├── experiment-summary.csv          # 포인트당 한 행 (그래프 입력): 처리량 mean/median/stddev, MB/s, P50/P95/P99, lostTotal, generatorSaturated, 자원 지표
+└── <broker>__<변수>=<값>/
+    ├── <name>-<ts>.json            # Run 마다 (resources 포함)
+    ├── <name>-aggregate-<ts>.csv/.json
+    ├── point-result.json           # 포인트 집계 (요약 CSV 의 원본)
+    └── DONE                        # 완료 표시
+```
+
+### 자원 지표 (Prometheus)
+
+각 Run 의 측정 구간에 대해 브로커 컨테이너(`mqt-kafka` / `mqt-rabbitmq`)의 CPU(평균·최대 코어), 메모리 working set 최대, 네트워크 RX/TX 평균 B/s, 디스크 write 평균 B/s 를 조회해 Run JSON 의 `resources` 에 저장한다
+(요약 CSV 의 단위는 MB 또는 MB/s). Prometheus 에 연결할 수 없거나 값이 없으면 해당 필드는 null 이고 Run 은 실패하지 않는다.
+
+- Docker Desktop(macOS) 의 cAdvisor 는 컨테이너 이름 라벨이 없어 `docker inspect` 로 얻은 컨테이너 ID(`id="/docker/<id>"`)로 선택한다.
+- 같은 환경에서 cAdvisor 는 **컨테이너별 네트워크 지표를 노출하지 않는다**. 그래서 네트워크는 VM 전체 `eth0` 값으로 대체되며, 같은 VM 의 다른 컨테이너 트래픽이 포함될 수 있다(Linux 에서는 컨테이너별 값을 쓴다).
+- 구간 종료 후 마지막 scrape(5초 간격)가 반영되도록 6초 기다린 뒤 조회하므로 Run 마다 6초가 더 걸린다. 측정 구간이 10초보다 짧아도 조회 윈도우는 최소 10초다.
+- 디스크 write 는 환경에 따라 0 에 가깝거나 없을 수 있다.
+
+### 브로커 간 간섭 줄이기
+
+두 브로커가 같은 Docker 호스트의 CPU / 디스크를 나눠 쓰므로, 비교용 본 실험은 **한 브로커씩** 실행하고 다른 브로커 컨테이너는 내려 두는 것을 권장한다.
+러너는 컨테이너를 기동/중지하지 않으며, 실험 시작 시점에 떠 있던 `mqt-*` 컨테이너를 `experiment-meta.json` 에 기록한다.
+
+```bash
+docker compose -f docker/docker-compose.yml --profile single stop rabbitmq
+./scripts/run-experiment.sh experiments/exp2-producer-scaling.yml --profile=full --brokers=kafka
+docker compose -f docker/docker-compose.yml --profile single start rabbitmq && docker compose -f docker/docker-compose.yml --profile single stop kafka kafka-exporter
+./scripts/run-experiment.sh experiments/exp2-producer-scaling.yml --profile=full --brokers=rabbitmq
+```
+
 ## 측정 방식과 주의점
 
 - Latency = consumer 수신 시각 − producer 발행 직전 시각(같은 JVM 의 `System.nanoTime`). P50/P95/P99/P99.9 를 HdrHistogram 으로 계산.
 - `msg/sec` 과 `MB/sec`(payload 기준)를 함께 기록한다.
+- `warmupMessages` 는 `warmupSeconds` 및 rate 제어(`targetRatePerSec` / `rateSteps`)와 함께 쓸 수 없다. 개수 기반 warm-up 이면 처리량 윈도우는 첫 측정 메시지 발행 시각부터 시작한다.
 - 짧은 Run(예: smoke)의 Kafka latency 는 consumer group 가입/rebalance 시간이 섞여 크게 나온다. 본 실험에서는 `warmupSeconds` 를 충분히 두어 제외한다.
 - 로컬(macOS Docker Desktop) 결과는 프로덕션을 대표하지 않는다. Threats to Validity 에 `env.json` 을 인용한다.
 - `kafka-exporter` 이미지는 셸이 없어 healthcheck 가 없다. Prometheus target 상태(`kafka` job UP)로 확인한다.

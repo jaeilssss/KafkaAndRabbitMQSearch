@@ -24,8 +24,14 @@ final class SuiteRunner {
     private final Scenario scenario;
     private final Map<String, String> environment;
     private final Path resultsDir;
+    private final ResourceCollector collector;
 
     SuiteRunner(Scenario scenario, Map<String, String> environment, Path resultsDir) {
+        this(scenario, environment, resultsDir, null);
+    }
+
+    SuiteRunner(Scenario scenario, Map<String, String> environment, Path resultsDir, ResourceCollector collector) {
+        this.collector = collector;
         this.scenario = scenario;
         this.environment = environment;
         this.resultsDir = resultsDir;
@@ -52,7 +58,7 @@ final class SuiteRunner {
                 }
                 first = false;
                 log.info("step rate={} repetition {}/{}", rate == null ? "unlimited" : rate, rep, scenario.repetitions());
-                RunResult result = new ScenarioRunner(stepScenario, environment).run();
+                RunResult result = new ScenarioRunner(stepScenario, environment, collector).run();
                 Path out = ResultWriter.write(resultsDir, result);
                 log.info("run result: {}", out);
                 runs.add(result);

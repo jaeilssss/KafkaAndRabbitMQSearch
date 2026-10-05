@@ -1,0 +1,107 @@
+package com.mqtest.common;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Set;
+import org.junit.jupiter.api.Test;
+
+class ExperimentDefinitionTest {
+
+    private static final String EXP1 = """
+            experiment: exp1-baseline
+            brokers: [kafka, rabbitmq]
+            base:
+              messageSizeBytes: 1024
+              producers: 1
+              consumers: 1
+              kafka: { partitions: 1 }
+            vary:
+              messageCount: [10000, 100000, 1000000]
+            profiles:
+              full:  { measureSeconds: 600, cooldownSeconds: 60, repetitions: 3, warmupMessagesPercent: 10, warmupMessagesMin: 1000 }
+              quick: { measureSeconds: 600, cooldownSeconds: 5, repetitions: 1, warmupMessages: 1000 }
+            """;
+
+    private static final String EXP2 = """
+            experiment: exp2-producer-scaling
+            brokers: [kafka, rabbitmq]
+            base:
+              messageSizeBytes: 1024
+              consumers: 1
+              messageCount: 2147483647
+            vary:
+              producers: [1, 2, 4, 8, 16, 32]
+            profiles:
+              full:  { warmupSeconds: 120, measureSeconds: 300, cooldownSeconds: 60, repetitions: 3 }
+              quick: { warmupSeconds: 5, measureSeconds: 15, cooldownSeconds: 5, repetitions: 1 }
+            """;
+
+    @Test
+    void expandsExp1ToSixPointsAndExp2ToTwelve() throws IOException {
+        assertThat(ExperimentDefinition.parse(EXP1).expand("quick", Set.of())).hasSize(6);
+        assertThat(ExperimentDefinition.parse(EXP2).expand("full", Set.of())).hasSize(12);
+    }
+
+    @Test
+    void appliesProfileValuesToEveryPointScenario() throws IOException {
+        List<ExperimentPoint> points = ExperimentDefinition.parse(EXP2).expand("full", Set.of());
+
+        assertThat(points).allSatisfy(p -> {
+            Scenario s = p.scenario();
+            assertThat(s.warmupSeconds()).isEqualTo(120);
+            assertThat(s.measureSeconds()).isEqualTo(300);
+            assertThat(s.cooldownSeconds()).isEqualTo(60);
+            assertThat(s.repetitions()).isEqualTo(3);
+            assertThat(s.messageSizeBytes()).isEqualTo(1024);
+        });
+        assertThat(points.stream().filter(p -> p.broker() == Broker.RABBITMQ).map(p -> p.scenario().producers()))
+                .containsExactly(1, 2, 4, 8, 16, 32);
+        ExperimentPoint first = points.get(0);
+        assertThat(first.broker()).isEqualTo(Broker.KAFKA);
+        assertThat(first.dirName()).isEqualTo("kafka__producers=1");
+        assertThat(first.scenario().name()).isEqualTo("exp2-producer-scaling-kafka-producers-1");
+    }
+
+    @Test
+    void derivesWarmupMessagesFromPercentWithMinimumAndLiteral() throws IOException {
+        ExperimentDefinition def = ExperimentDefinition.parse(EXP1);
+
+        List<ExperimentPoint> full = def.expand("full", Set.of(Broker.KAFKA));
+        assertThat(full.stream().map(p -> p.scenario().warmupMessages())).containsExactly(1000, 10_000, 100_000);
+
+        List<ExperimentPoint> quick = def.expand("quick", Set.of(Broker.KAFKA));
+        assertThat(quick).allSatisfy(p -> assertThat(p.scenario().warmupMessages()).isEqualTo(1000));
+    }
+
+    @Test
+    void filtersByBroker() throws IOException {
+        List<ExperimentPoint> kafkaOnly = ExperimentDefinition.parse(EXP2).expand("quick", Set.of(Broker.KAFKA));
+
+        assertThat(kafkaOnly).hasSize(6).allSatisfy(p -> assertThat(p.broker()).isEqualTo(Broker.KAFKA));
+    }
+
+    @Test
+    void rejectsInvalidDefinitions() {
+        String twoVary = EXP2.replace("producers: [1, 2, 4, 8, 16, 32]", "producers: [1, 2]\n  consumers: [1, 2]");
+        assertThatThrownBy(() -> ExperimentDefinition.parse(twoVary)).hasRootCauseInstanceOf(IllegalArgumentException.class);
+
+        String emptyValues = EXP2.replace("producers: [1, 2, 4, 8, 16, 32]", "producers: []");
+        assertThatThrownBy(() -> ExperimentDefinition.parse(emptyValues)).hasRootCauseInstanceOf(IllegalArgumentException.class);
+
+        String unknownTop = EXP2 + "bogus: 1\n";
+        assertThatThrownBy(() -> ExperimentDefinition.parse(unknownTop)).isInstanceOf(IOException.class);
+
+        String unknownScenarioField = EXP2.replace("consumers: 1", "consumers: 1\n  notAField: 3");
+        assertThatThrownBy(() -> ExperimentDefinition.parse(unknownScenarioField).expand("quick", Set.of()))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        assertThatThrownBy(() -> ExperimentDefinition.parse(EXP2).expand("nope", Set.of()))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("nope");
+
+        String rateSteps = EXP2.replace("consumers: 1", "consumers: 1\n  rateSteps: [100]");
+        assertThatThrownBy(() -> ExperimentDefinition.parse(rateSteps)).hasRootCauseInstanceOf(IllegalArgumentException.class);
+    }
+}

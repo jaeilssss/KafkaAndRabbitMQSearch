@@ -1,0 +1,7 @@
+experiment,profile,broker,variable,value,runs,producerMsgPerSec_mean,producerMsgPerSec_median,producerMsgPerSec_stddev,consumerMsgPerSec_mean,consumerMsgPerSec_median,consumerMsgPerSec_stddev,consumerMBPerSec_mean,p50Ms_mean,p95Ms_mean,p99Ms_mean,lostTotal,generatorSaturated,cpuCoresAvg,cpuCoresMax,memoryMaxMB,netRxMBps,netTxMBps,diskWriteMBps
+exp1-baseline,quick,KAFKA,messageCount,10000,1,44177.561,44177.561,0.000,43994.308,43994.308,0.000,45.050,87.097,147.456,155.320,0,false,0.021,0.129,956.150,0.001,0.007,0.012
+exp1-baseline,quick,KAFKA,messageCount,100000,1,57588.855,57588.855,0.000,57584.144,57584.144,0.000,58.966,522.453,539.492,541.065,0,false,0.207,0.048,963.813,0.001,0.003,0.016
+exp1-baseline,quick,KAFKA,messageCount,1000000,1,59324.646,59324.646,0.000,59323.386,59323.386,0.000,60.747,498.336,705.167,828.375,0,false,1.100,1.065,1130.664,68.424,66.825,68.688
+exp1-baseline,quick,RABBITMQ,messageCount,10000,1,54251.496,54251.496,0.000,26524.241,26524.241,0.000,27.161,121.242,170.525,174.326,0,false,0.078,0.049,159.572,0.000,0.007,0.000
+exp1-baseline,quick,RABBITMQ,messageCount,100000,1,7525.475,7525.475,0.000,7447.910,7447.910,0.000,7.627,157.680,289.145,10183.770,0,false,0.273,0.152,239.518,0.015,0.024,0.084
+exp1-baseline,quick,RABBITMQ,messageCount,1000000,1,34398.712,34398.712,0.000,34065.414,34065.414,0.000,34.883,285.999,341.574,443.810,0,false,1.865,1.968,256.111,42.152,41.583,0.583

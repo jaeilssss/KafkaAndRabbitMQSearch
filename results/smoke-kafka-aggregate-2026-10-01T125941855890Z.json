@@ -1,0 +1,37 @@
+[ {
+  "targetRatePerSec" : null,
+  "runs" : 1,
+  "producerMsgPerSec" : {
+    "mean" : 36722.4537291391,
+    "median" : 36722.4537291391,
+    "stddev" : 0.0
+  },
+  "consumerMsgPerSec" : {
+    "mean" : 36585.3324360805,
+    "median" : 36585.3324360805,
+    "stddev" : 0.0
+  },
+  "p50Ms" : {
+    "mean" : 80.805887,
+    "median" : 80.805887,
+    "stddev" : 0.0
+  },
+  "p95Ms" : {
+    "mean" : 143.392767,
+    "median" : 143.392767,
+    "stddev" : 0.0
+  },
+  "p99Ms" : {
+    "mean" : 148.373503,
+    "median" : 148.373503,
+    "stddev" : 0.0
+  },
+  "lost" : {
+    "mean" : 0.0,
+    "median" : 0.0,
+    "stddev" : 0.0
+  },
+  "lostTotal" : 0,
+  "achievedRatio" : null,
+  "generatorSaturated" : false
+} ]

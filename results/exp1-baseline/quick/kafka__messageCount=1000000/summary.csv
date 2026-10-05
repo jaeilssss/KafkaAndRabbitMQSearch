@@ -1,0 +1,2 @@
+startedAt,scenario,broker,messageSizeBytes,producers,consumers,sent,received,lost,producerMsgPerSec,consumerMsgPerSec,producerMBPerSec,consumerMBPerSec,p50Ms,p95Ms,p99Ms,p999Ms,maxMs
+2026-10-01T13:57:36.369855Z,exp1-baseline-kafka-messageCount-1000000,KAFKA,1024,1,1,1000000,1000000,0,59324.65,59323.39,60.7484,60.7471,498.336,705.167,828.375,848.822,851.444

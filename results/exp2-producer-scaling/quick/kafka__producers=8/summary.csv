@@ -1,0 +1,2 @@
+startedAt,scenario,broker,messageSizeBytes,producers,consumers,sent,received,lost,producerMsgPerSec,consumerMsgPerSec,producerMBPerSec,consumerMBPerSec,p50Ms,p95Ms,p99Ms,p999Ms,maxMs
+2026-10-01T14:07:24.229253Z,exp2-producer-scaling-kafka-producers-8,KAFKA,1024,8,1,2924948,2924948,0,131327.00,64014.39,134.4788,65.5507,15460.205,16080.962,16206.791,16240.345,16257.122

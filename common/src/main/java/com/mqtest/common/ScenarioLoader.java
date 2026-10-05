@@ -19,6 +19,20 @@ public final class ScenarioLoader {
     private ScenarioLoader() {
     }
 
+    static ObjectMapper yamlMapper() {
+        return YAML;
+    }
+
+    /** 실험 정의에서 합성한 JSON 트리를 Scenario 로 변환한다(알 수 없는 필드는 거부). */
+    public static Scenario fromTree(com.fasterxml.jackson.databind.JsonNode tree) {
+        try {
+            return YAML.treeToValue(tree, Scenario.class);
+        } catch (IOException e) {
+            Throwable cause = e.getCause() != null ? e.getCause() : e;
+            throw new IllegalArgumentException("invalid scenario: " + cause.getMessage(), e);
+        }
+    }
+
     public static Scenario load(Path file) throws IOException {
         try (Reader reader = Files.newBufferedReader(file)) {
             return YAML.readValue(reader, Scenario.class);

@@ -1,0 +1,50 @@
+{
+  "targetRatePerSec" : null,
+  "runs" : 1,
+  "producerMsgPerSec" : {
+    "mean" : 59324.646355294375,
+    "median" : 59324.646355294375,
+    "stddev" : 0.0
+  },
+  "consumerMsgPerSec" : {
+    "mean" : 59323.38605149979,
+    "median" : 59323.38605149979,
+    "stddev" : 0.0
+  },
+  "consumerMBPerSec" : {
+    "mean" : 60.747147316735784,
+    "median" : 60.747147316735784,
+    "stddev" : 0.0
+  },
+  "p50Ms" : {
+    "mean" : 498.335743,
+    "median" : 498.335743,
+    "stddev" : 0.0
+  },
+  "p95Ms" : {
+    "mean" : 705.167359,
+    "median" : 705.167359,
+    "stddev" : 0.0
+  },
+  "p99Ms" : {
+    "mean" : 828.375039,
+    "median" : 828.375039,
+    "stddev" : 0.0
+  },
+  "lost" : {
+    "mean" : 0.0,
+    "median" : 0.0,
+    "stddev" : 0.0
+  },
+  "lostTotal" : 0,
+  "achievedRatio" : null,
+  "generatorSaturated" : false,
+  "resources" : {
+    "cpuCoresAvg" : 1.1004370262002925,
+    "cpuCoresMax" : 1.0649953884711778,
+    "memoryMaxBytes" : 1.130663936E9,
+    "netRxBytesPerSec" : 6.84243708563054E7,
+    "netTxBytesPerSec" : 6.6824784213832095E7,
+    "diskWriteBytesPerSec" : 6.868794254555127E7
+  }
+}

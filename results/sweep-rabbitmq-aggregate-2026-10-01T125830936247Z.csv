@@ -1,0 +1,3 @@
+targetRatePerSec,runs,producerMsgPerSec_mean,producerMsgPerSec_median,producerMsgPerSec_stddev,consumerMsgPerSec_mean,consumerMsgPerSec_median,consumerMsgPerSec_stddev,p50Ms_mean,p50Ms_median,p50Ms_stddev,p95Ms_mean,p95Ms_median,p95Ms_stddev,p99Ms_mean,p99Ms_median,p99Ms_stddev,lost_mean,lost_median,lost_stddev,lostTotal,achievedRatio,generatorSaturated
+2000.0,2,2000.043,2000.043,0.060,2000.047,2000.047,0.012,0.253,0.253,0.003,0.360,0.360,0.003,0.901,0.901,0.014,0.000,0.000,0.000,0,1.0000,false
+4000.0,2,4000.064,4000.064,0.001,3999.952,3999.952,0.021,0.250,0.250,0.002,0.408,0.408,0.005,0.963,0.963,0.021,0.000,0.000,0.000,0,1.0000,false

@@ -7,6 +7,10 @@ dependencies {
     implementation project(':producer')
     implementation project(':consumer')
     implementation 'org.springframework.boot:spring-boot-starter'
+
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testImplementation 'org.assertj:assertj-core'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 bootJar {
