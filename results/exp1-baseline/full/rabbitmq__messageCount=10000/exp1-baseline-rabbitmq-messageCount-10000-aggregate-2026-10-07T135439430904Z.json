@@ -1,4 +1,4 @@
-{
+[ {
   "targetRatePerSec" : null,
   "runs" : 3,
   "producerMsgPerSec" : {
@@ -47,4 +47,4 @@
     "netTxBytesPerSec" : 11867.056080367578,
     "diskWriteBytesPerSec" : 296.8495280934451
   }
-}
+} ]
