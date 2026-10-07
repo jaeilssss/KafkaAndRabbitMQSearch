@@ -15,6 +15,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HexFormat;
@@ -86,8 +87,14 @@ final class ExperimentRunner {
             log.info("=== point {}/{}: {} ===", ++n, pending.size(), p.dirName());
             Path dir = PointStore.dir(root, p);
             PointStore.clear(dir);
-            List<Aggregator.StepAggregate> aggregates =
-                    new SuiteRunner(p.scenario(), environment, dir, collector).run();
+            Instant pointStart = Instant.now();
+            List<Aggregator.StepAggregate> aggregates;
+            try (HostStateSampler host = HostStateSampler.start(dir.resolve("host-state.csv"), Duration.ofSeconds(30))) {
+                aggregates = new SuiteRunner(p.scenario(), environment, dir, collector).run();
+            }
+            if (collector != null) {
+                collector.recordTimeSeries(p.broker(), pointStart, Instant.now(), dir.resolve("timeseries.csv"));
+            }
             PointStore.writeAggregate(dir, aggregates.get(0));
             PointStore.markDone(dir);
             writeSummary(def, root); // 포인트마다 갱신해 중간에 멈춰도 표가 남는다

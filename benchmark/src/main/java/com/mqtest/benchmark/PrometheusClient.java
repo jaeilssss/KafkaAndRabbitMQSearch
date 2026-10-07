@@ -9,9 +9,16 @@ import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.LinkedHashMap;
+import java.util.Locale;
+import java.util.Map;
+import java.util.TreeMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,6 +73,89 @@ final class PrometheusClient implements ResourceCollector {
                 network("receive", sel, w, time),
                 network("transmit", sel, w, time),
                 query("sum(rate(container_fs_writes_bytes_total" + sel + "[" + w + "]))", time));
+    }
+
+    private static final int STEP_SECONDS = 5; // scrape 간격과 같다
+
+    /**
+     * 구간의 시계열을 {@code time,<series>...} 형태의 CSV 로 저장한다. 값이 없는 시각은 빈 칸이다
+     * (예: Kafka consumer group 이 없는 구간의 lag). Prometheus 를 쓸 수 없으면 파일을 만들지 않는다.
+     */
+    @Override
+    public void recordTimeSeries(Broker broker, Instant start, Instant end, Path file) {
+        String name = broker == Broker.KAFKA ? "mqt-kafka" : "mqt-rabbitmq";
+        String id = containerIds.apply(name);
+        String sel = id == null ? "{name=\"" + name + "\"}" : "{id=\"/docker/" + id + "\"}";
+        Map<String, String> series = new LinkedHashMap<>();
+        series.put("cpuCores", "sum(rate(container_cpu_usage_seconds_total" + sel + "[15s]))");
+        series.put("memoryBytes", "sum(container_memory_working_set_bytes" + sel + ")");
+        series.put("diskWriteBytesPerSec", "sum(rate(container_fs_writes_bytes_total" + sel + "[15s]))");
+        series.put("netRxBytesPerSec", "sum(rate(container_network_receive_bytes_total{id=\"/\",interface=\"eth0\"}[15s]))");
+        series.put("netTxBytesPerSec", "sum(rate(container_network_transmit_bytes_total{id=\"/\",interface=\"eth0\"}[15s]))");
+        series.put(broker == Broker.KAFKA ? "consumerLag" : "queueDepth",
+                broker == Broker.KAFKA ? "sum(kafka_consumergroup_lag)" : "sum(rabbitmq_queue_messages)");
+        try {
+            Thread.sleep(settle.toMillis());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return;
+        }
+        Map<Long, Map<String, String>> rows = new TreeMap<>();
+        boolean any = false;
+        for (Map.Entry<String, String> e : series.entrySet()) {
+            Map<Long, String> points = queryRange(e.getValue(), start.getEpochSecond(), end.getEpochSecond());
+            any |= !points.isEmpty();
+            points.forEach((t, v) -> rows.computeIfAbsent(t, k -> new LinkedHashMap<>()).put(e.getKey(), v));
+        }
+        if (!any) {
+            log.warn("no time series available, skipped: {}", file);
+            return;
+        }
+        StringBuilder sb = new StringBuilder("time,elapsedSec");
+        series.keySet().forEach(k -> sb.append(',').append(k));
+        sb.append('\n');
+        for (Map.Entry<Long, Map<String, String>> row : rows.entrySet()) {
+            sb.append(Instant.ofEpochSecond(row.getKey())).append(',').append(row.getKey() - start.getEpochSecond());
+            for (String k : series.keySet()) {
+                sb.append(',').append(row.getValue().getOrDefault(k, ""));
+            }
+            sb.append('\n');
+        }
+        try {
+            Files.createDirectories(file.getParent());
+            Files.writeString(file, sb);
+        } catch (IOException ex) {
+            log.warn("failed to write time series {}: {}", file, ex.toString());
+        }
+    }
+
+    private Map<Long, String> queryRange(String promql, long startSec, long endSec) {
+        Map<Long, String> out = new TreeMap<>();
+        try {
+            String url = baseUrl + "/api/v1/query_range?query=" + URLEncoder.encode(promql, StandardCharsets.UTF_8)
+                    + "&start=" + startSec + "&end=" + endSec + "&step=" + STEP_SECONDS;
+            HttpResponse<String> res = http.send(
+                    HttpRequest.newBuilder(URI.create(url)).timeout(Duration.ofSeconds(10)).GET().build(),
+                    HttpResponse.BodyHandlers.ofString());
+            if (res.statusCode() != 200) {
+                log.warn("prometheus range query failed ({}): {}", res.statusCode(), promql);
+                return out;
+            }
+            JsonNode result = json.readTree(res.body()).path("data").path("result");
+            if (result.isArray() && !result.isEmpty()) {
+                for (JsonNode v : result.get(0).path("values")) {
+                    String value = v.path(1).asText("");
+                    if (!value.equals("NaN") && !value.isEmpty()) {
+                        out.put(v.path(0).asLong(), String.format(Locale.ROOT, "%.4f", Double.parseDouble(value)));
+                    }
+                }
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        } catch (Exception e) {
+            log.warn("prometheus unavailable, time series skipped: {}", e.toString());
+        }
+        return out;
     }
 
     /**

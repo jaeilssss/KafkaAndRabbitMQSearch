@@ -133,10 +133,26 @@ results/<experiment>/<profile>/
 - 구간 종료 후 마지막 scrape(5초 간격)가 반영되도록 6초 기다린 뒤 조회하므로 Run 마다 6초가 더 걸린다. 측정 구간이 10초보다 짧아도 조회 윈도우는 최소 10초다.
 - 디스크 write 는 환경에 따라 0 에 가깝거나 없을 수 있다.
 
+### 시계열과 호스트 상태
+
+포인트마다 아래 두 파일이 추가로 저장된다.
+
+- `timeseries.csv` — 포인트 전체 구간(warm-up, cool-down, drain 포함)의 5초 간격 시계열. 브로커 CPU / 메모리 / 디스크 write / 네트워크, 그리고 Kafka 는 `consumerLag`, RabbitMQ 는 `queueDepth`. 값이 없는 시각은 빈 칸이다(consumer group 이 없는 구간의 lag 등). Prometheus 에 연결할 수 없으면 파일을 만들지 않는다.
+- `host-state.csv` — 30초 간격 호스트 상태(macOS `pmset`): AC 연결 여부, 배터리 %, 열/성능 경고, CPU speed limit. 경고가 감지되면 로그에 WARN 이 남는다. **Apple Silicon 은 스로틀링 정도를 `pmset` 으로 완전히 노출하지 않으므로, 경고가 없다는 것이 스로틀링이 없었다는 증명은 아니다.** 결과가 의심스러우면 해당 포인트를 `--force` 로 다시 돌린다.
+
 ### 브로커 간 간섭 줄이기
 
 두 브로커가 같은 Docker 호스트의 CPU / 디스크를 나눠 쓰므로, 비교용 본 실험은 **한 브로커씩** 실행하고 다른 브로커 컨테이너는 내려 두는 것을 권장한다.
 러너는 컨테이너를 기동/중지하지 않으며, 실험 시작 시점에 떠 있던 `mqt-*` 컨테이너를 `experiment-meta.json` 에 기록한다.
+
+한 줄로 자동화하려면 `run-isolated.sh` 를 쓴다. 브로커별로 다른 브로커 컨테이너를 중지하고 대상만 기동한 뒤 실험을 돌리고, 끝나면 전체 스택을 복구한다(macOS 에서는 `caffeinate` 로 잠들기 방지).
+
+```bash
+./scripts/run-isolated.sh experiments/exp2-producer-scaling.yml --profile=full                    # kafka -> rabbitmq 순서로 격리 실행
+./scripts/run-isolated.sh experiments/exp2-producer-scaling.yml --profile=full --brokers=rabbitmq # 한 브로커만
+```
+
+수동으로 하려면:
 
 ```bash
 docker compose -f docker/docker-compose.yml --profile single stop rabbitmq
