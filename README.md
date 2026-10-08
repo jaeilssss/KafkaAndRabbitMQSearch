@@ -128,6 +128,19 @@ vary:
     - { label: quorum-confirm, broker: rabbitmq, set: { rabbitmq: { queueType: quorum, publisherConfirms: true } } }
 ```
 
+### 여러 실험을 한 줄로 (`run-series.sh`)
+
+```bash
+./scripts/run-series.sh part1      # 블로그 1편: Exp 7 -> Exp 2 -> 병렬성
+./scripts/run-series.sh part2      # 블로그 2편: 내구성 -> 느린 소비자
+./scripts/run-series.sh experiments/exp7-message-size.yml experiments/exp2-producer-scaling.yml   # 직접 고르기
+./scripts/run-series.sh part1 --dry-run                                                             # 계획만 출력
+```
+
+실험 사이마다 호스트·Docker 디스크 여유(`MIN_HOST_GB`=15, `MIN_DOCKER_GB`=15, 환경변수로 변경 가능)와 전원 연결을 점검하고, 부족하면 남은 실험을 중단한다(`--allow-battery` 로 전원 점검 생략).
+한 실험이 실패해도 다음 실험은 계속하며 마지막에 OK / FAILED / ABORTED / SKIPPED 요약을 출력한다. 로그는 `logs/series-*.log`(git 제외).
+끊겨도 같은 명령을 다시 실행하면 `DONE` 포인트는 건너뛰고 이어 한다.
+
 ### 결과 구조
 
 ```

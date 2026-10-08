@@ -32,7 +32,9 @@ final class BrokerTopology {
             long perPartition = Math.max(KAFKA_MIN_RETENTION_BYTES, KAFKA_TOPIC_RETENTION_BYTES / o.partitions());
             NewTopic newTopic = new NewTopic(topic, o.partitions(), o.replicationFactor().shortValue()).configs(Map.of(
                     "retention.bytes", Long.toString(perPartition),
-                    "segment.bytes", Long.toString(KAFKA_SEGMENT_BYTES)));
+                    "segment.bytes", Long.toString(KAFKA_SEGMENT_BYTES),
+                    // 토픽 삭제 후 파일이 실제로 지워지기까지 기본 60초가 걸려, 연속 Run 에서 이전 Run 의 데이터가 디스크에 겹쳐 남는다.
+                    "file.delete.delay.ms", "1000"));
             admin.createTopics(List.of(newTopic)).all().get();
         }
     }
