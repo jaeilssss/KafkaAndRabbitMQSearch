@@ -142,6 +142,7 @@ public record Scenario(
             String password,
             String queueType,
             Boolean publisherConfirms,
+            Integer confirmBatchSize,
             Integer prefetch) {
 
         public RabbitOptions {
@@ -151,6 +152,7 @@ public record Scenario(
             password = password == null ? "guest" : password;
             queueType = queueType == null ? "classic" : queueType;
             publisherConfirms = publisherConfirms == null ? Boolean.FALSE : publisherConfirms;
+            confirmBatchSize = confirmBatchSize == null ? Integer.valueOf(1) : confirmBatchSize; // 1 = 메시지마다 동기 confirm
             prefetch = prefetch == null ? Integer.valueOf(250) : prefetch;
             if (!queueType.equals("classic") && !queueType.equals("quorum")) {
                 throw new IllegalArgumentException("rabbitmq.queueType must be classic or quorum");
@@ -158,10 +160,13 @@ public record Scenario(
             if (prefetch <= 0) {
                 throw new IllegalArgumentException("rabbitmq.prefetch must be > 0");
             }
+            if (confirmBatchSize <= 0) {
+                throw new IllegalArgumentException("rabbitmq.confirmBatchSize must be > 0");
+            }
         }
 
         public static RabbitOptions defaults() {
-            return new RabbitOptions(null, null, null, null, null, null, null);
+            return new RabbitOptions(null, null, null, null, null, null, null, null);
         }
     }
 }

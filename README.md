@@ -113,7 +113,7 @@ pauseBetweenRunsSeconds: 5      # Run 사이 대기 (기본 5)
 ### variant 실험 (브로커마다 바꿀 설정이 다를 때)
 
 `vary` 의 변수 이름이 `variant` 이면 값은 이름 붙은 설정 묶음이다. `label` 이 결과 디렉터리 이름이 되고, `broker` 로 특정 브로커에만 적용하며, `set` 은 `base` 위에 깊은 병합으로 덮어쓴다.
-예: `experiments/exp-durability.yml` (Kafka `acks` 3종, RabbitMQ confirm × queue 종류 4종 = 7포인트, 단일 브로커 한정).
+예: `experiments/exp-durability.yml` (Kafka `acks` 3종, RabbitMQ queue 종류 × confirm 방식(없음 / 건당 동기 / 100건 배치) 6종 = 9포인트, 단일 브로커 한정).
 
 ```yaml
 vary:

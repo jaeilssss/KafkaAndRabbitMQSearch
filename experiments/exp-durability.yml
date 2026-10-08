@@ -5,8 +5,12 @@
 #       복제(RF=3) 효과와 quorum 의 다중 노드 복제는 3노드 클러스터가 필요하므로 이 실험 범위가 아니다.
 # 조건: producer 1 / consumer 1 / 1KB (Exp 1 과 같은 구성이라 소비가 발행을 따라가 backlog 가 지연을 오염시키지 않는다).
 #       시간 기반 종료, 무제한 rate.
+# RabbitMQ publisher confirm 은 두 방식을 모두 잰다.
+#   confirm-each  : 메시지마다 confirm 을 동기 대기 (가장 보수적, producer 1개면 왕복 시간이 처리량 상한이 된다)
+#   confirm-batch : 100건을 보낸 뒤 한 번에 confirm 대기 (고성능 클라이언트의 일반적인 사용법, Kafka 의 배치 ack 와 비교 가능)
 # Benchmark A (최대 성능 설정): kafka acks-0 / acks-1, rabbitmq classic-noconfirm
-# Benchmark B (비슷한 안전 수준 설정): kafka acks-all  <->  rabbitmq quorum-confirm
+# Benchmark B (비슷한 안전 수준 설정): kafka acks-all  <->  rabbitmq quorum-confirm-batch
+#   (confirm-each 는 "내구성을 가장 보수적으로 썼을 때의 최악 비용"으로 따로 보고한다. Kafka 와 직접 비교하지 않는다.)
 experiment: exp-durability
 description: 내구성/응답 대기 수준에 따른 처리량과 지연 비용 비교 (단일 브로커)
 brokers: [kafka, rabbitmq]
@@ -29,9 +33,11 @@ vary:
     - { label: acks-1,            broker: kafka,    set: { kafka: { acks: "1" } } }
     - { label: acks-all,          broker: kafka,    set: { kafka: { acks: "all" } } }
     - { label: classic-noconfirm, broker: rabbitmq, set: { rabbitmq: { queueType: classic, publisherConfirms: false } } }
-    - { label: classic-confirm,   broker: rabbitmq, set: { rabbitmq: { queueType: classic, publisherConfirms: true } } }
-    - { label: quorum-noconfirm,  broker: rabbitmq, set: { rabbitmq: { queueType: quorum,  publisherConfirms: false } } }
-    - { label: quorum-confirm,    broker: rabbitmq, set: { rabbitmq: { queueType: quorum,  publisherConfirms: true } } }
+    - { label: classic-confirm-each,  broker: rabbitmq, set: { rabbitmq: { queueType: classic, publisherConfirms: true, confirmBatchSize: 1 } } }
+    - { label: classic-confirm-batch, broker: rabbitmq, set: { rabbitmq: { queueType: classic, publisherConfirms: true, confirmBatchSize: 100 } } }
+    - { label: quorum-noconfirm,      broker: rabbitmq, set: { rabbitmq: { queueType: quorum,  publisherConfirms: false } } }
+    - { label: quorum-confirm-each,   broker: rabbitmq, set: { rabbitmq: { queueType: quorum,  publisherConfirms: true, confirmBatchSize: 1 } } }
+    - { label: quorum-confirm-batch,  broker: rabbitmq, set: { rabbitmq: { queueType: quorum,  publisherConfirms: true, confirmBatchSize: 100 } } }
 profiles:
   full:
     warmupSeconds: 120

@@ -116,7 +116,7 @@ class ExperimentDefinitionTest {
               variant:
                 - { label: acks-all, broker: kafka, set: { kafka: { acks: "all" } } }
                 - { label: acks-0, broker: kafka, set: { kafka: { acks: "0" } } }
-                - { label: quorum-confirm, broker: rabbitmq, set: { rabbitmq: { queueType: quorum, publisherConfirms: true } } }
+                - { label: quorum-confirm, broker: rabbitmq, set: { rabbitmq: { queueType: quorum, publisherConfirms: true, confirmBatchSize: 100 } } }
             profiles:
               quick: { warmupSeconds: 5, measureSeconds: 15, cooldownSeconds: 5, repetitions: 1 }
             """;
@@ -133,6 +133,8 @@ class ExperimentDefinitionTest {
         ExperimentPoint quorum = points.get(2);
         assertThat(quorum.scenario().rabbitmq().queueType()).isEqualTo("quorum");
         assertThat(quorum.scenario().rabbitmq().publisherConfirms()).isTrue();
+        assertThat(quorum.scenario().rabbitmq().confirmBatchSize()).isEqualTo(100);
+        assertThat(points.get(0).scenario().rabbitmq().confirmBatchSize()).isEqualTo(1); // 기본값: 건당 동기 confirm
         assertThat(quorum.scenario().rabbitmq().prefetch()).isEqualTo(250); // base 값 유지
     }
 
