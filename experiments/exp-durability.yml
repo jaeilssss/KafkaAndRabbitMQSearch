@@ -1,0 +1,47 @@
+# Durability vs Performance (연구 계획서 RQ6 / H8) — 블로그 2편
+# 내구성/응답 대기 수준을 높일수록 성능 비용이 얼마나 드는가. 단일 브로커(RF=1) 환경에서 가능한 비교만 한다.
+#
+# 한계: Kafka acks=all 은 복제본이 1개라 acks=1 과 실질적으로 같은 동작일 것으로 예상한다(그 자체가 관찰 포인트).
+#       복제(RF=3) 효과와 quorum 의 다중 노드 복제는 3노드 클러스터가 필요하므로 이 실험 범위가 아니다.
+# 조건: producer 1 / consumer 1 / 1KB (Exp 1 과 같은 구성이라 소비가 발행을 따라가 backlog 가 지연을 오염시키지 않는다).
+#       시간 기반 종료, 무제한 rate.
+# Benchmark A (최대 성능 설정): kafka acks-0 / acks-1, rabbitmq classic-noconfirm
+# Benchmark B (비슷한 안전 수준 설정): kafka acks-all  <->  rabbitmq quorum-confirm
+experiment: exp-durability
+description: 내구성/응답 대기 수준에 따른 처리량과 지연 비용 비교 (단일 브로커)
+brokers: [kafka, rabbitmq]
+base:
+  messageSizeBytes: 1024
+  producers: 1
+  consumers: 1
+  messageCount: 2147483647      # 시간 기반 종료 (deadline 이 먼저 도달)
+  kafka:
+    partitions: 1
+    replicationFactor: 1
+    acks: "1"
+  rabbitmq:
+    queueType: classic
+    publisherConfirms: false
+    prefetch: 250
+vary:
+  variant:
+    - { label: acks-0,            broker: kafka,    set: { kafka: { acks: "0" } } }
+    - { label: acks-1,            broker: kafka,    set: { kafka: { acks: "1" } } }
+    - { label: acks-all,          broker: kafka,    set: { kafka: { acks: "all" } } }
+    - { label: classic-noconfirm, broker: rabbitmq, set: { rabbitmq: { queueType: classic, publisherConfirms: false } } }
+    - { label: classic-confirm,   broker: rabbitmq, set: { rabbitmq: { queueType: classic, publisherConfirms: true } } }
+    - { label: quorum-noconfirm,  broker: rabbitmq, set: { rabbitmq: { queueType: quorum,  publisherConfirms: false } } }
+    - { label: quorum-confirm,    broker: rabbitmq, set: { rabbitmq: { queueType: quorum,  publisherConfirms: true } } }
+profiles:
+  full:
+    warmupSeconds: 120
+    measureSeconds: 300
+    cooldownSeconds: 60
+    repetitions: 3
+    pauseBetweenRunsSeconds: 10
+  quick:
+    warmupSeconds: 5
+    measureSeconds: 15
+    cooldownSeconds: 5
+    repetitions: 1
+    pauseBetweenRunsSeconds: 3

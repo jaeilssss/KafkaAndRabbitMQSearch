@@ -104,4 +104,46 @@ class ExperimentDefinitionTest {
         String rateSteps = EXP2.replace("consumers: 1", "consumers: 1\n  rateSteps: [100]");
         assertThatThrownBy(() -> ExperimentDefinition.parse(rateSteps)).hasRootCauseInstanceOf(IllegalArgumentException.class);
     }
+
+    private static final String DURABILITY = """
+            experiment: exp-durability
+            brokers: [kafka, rabbitmq]
+            base:
+              producers: 1
+              kafka: { partitions: 1, acks: "1" }
+              rabbitmq: { queueType: classic, prefetch: 250 }
+            vary:
+              variant:
+                - { label: acks-all, broker: kafka, set: { kafka: { acks: "all" } } }
+                - { label: acks-0, broker: kafka, set: { kafka: { acks: "0" } } }
+                - { label: quorum-confirm, broker: rabbitmq, set: { rabbitmq: { queueType: quorum, publisherConfirms: true } } }
+            profiles:
+              quick: { warmupSeconds: 5, measureSeconds: 15, cooldownSeconds: 5, repetitions: 1 }
+            """;
+
+    @Test
+    void variantsApplyOnlyToTheirBrokerAndMergeOverBase() throws IOException {
+        List<ExperimentPoint> points = ExperimentDefinition.parse(DURABILITY).expand("quick", Set.of());
+
+        assertThat(points).extracting(ExperimentPoint::dirName)
+                .containsExactly("kafka__variant=acks-all", "kafka__variant=acks-0", "rabbitmq__variant=quorum-confirm");
+        ExperimentPoint kafkaAll = points.get(0);
+        assertThat(kafkaAll.scenario().kafka().acks()).isEqualTo("all");
+        assertThat(kafkaAll.scenario().kafka().partitions()).isEqualTo(1); // base 값 유지
+        ExperimentPoint quorum = points.get(2);
+        assertThat(quorum.scenario().rabbitmq().queueType()).isEqualTo("quorum");
+        assertThat(quorum.scenario().rabbitmq().publisherConfirms()).isTrue();
+        assertThat(quorum.scenario().rabbitmq().prefetch()).isEqualTo(250); // base 값 유지
+    }
+
+    @Test
+    void rejectsInvalidVariants() {
+        String noLabel = DURABILITY.replace("label: acks-all", "name: acks-all");
+        String duplicate = DURABILITY.replace("label: acks-0", "label: acks-all");
+        String forbidden = DURABILITY.replace("set: { kafka: { acks: \"all\" } }", "set: { broker: rabbitmq }");
+
+        assertThatThrownBy(() -> ExperimentDefinition.parse(noLabel)).hasRootCauseInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> ExperimentDefinition.parse(duplicate)).hasRootCauseInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> ExperimentDefinition.parse(forbidden)).hasRootCauseInstanceOf(IllegalArgumentException.class);
+    }
 }

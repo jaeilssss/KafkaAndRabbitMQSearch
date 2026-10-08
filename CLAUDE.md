@@ -14,3 +14,16 @@
 - `results/<experiment>/<profile>/` 의 `full` 결과는 `--force` 로 덮어쓰지 않는다. 다시 돌려야 하면 기존 폴더를 `archive/` 로 옮긴 뒤 실행한다.
 - `quick` 프로파일 결과는 도구 검증용이다. 논문의 근거로 쓰지 않는다.
 - 로컬(macOS Docker Desktop) 환경이므로 Threats to Validity 에 `experiment-meta.json` 의 환경 정보를 인용한다.
+
+## 시리즈 구성 (블로그, 2026-10-08 확정)
+
+이 연구는 학술 논문이 아니라 **블로그 시리즈**로 쓴다. 10개 실험을 한 편에 싣지 않고 나눈다.
+
+| 편 | 제목안 | 실험 |
+|----|--------|------|
+| 1편 | 성능과 확장성: 부하를 올리면 누가 먼저 무너지는가 | Exp 1 Baseline, Exp 2 Producer Scaling, 병렬성(Exp 3+4: consumer × partition), Exp 7 Message Size |
+| 2편 | 내구성과 느린 소비자: 안전을 높이면 얼마를 내야 하는가 | `exp-durability`(계획서 RQ6, 번호 없는 신규 실험), 느린 소비자와 backlog(Exp 8+9) |
+| 3편(후보) | 튜닝과 장애 복구 | Exp 5 Prefetch, Exp 6 Batching, Exp 10 Failure Recovery(3노드 클러스터 필요) |
+
+- 내구성 실험은 **단일 브로커(RF=1)** 범위다. Kafka `acks=all` 은 복제본이 없어 `acks=1` 과 비슷할 것으로 예상되며, 복제 효과는 한계로 명시한다. 3노드 클러스터 이후 재측정은 3편 이후 과제다.
+- Exp 10 을 단일 노드에서 하면 재시작 복구만 잴 수 있다. failover 를 측정한 것처럼 쓰지 않는다.

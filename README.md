@@ -110,6 +110,18 @@ pauseBetweenRunsSeconds: 5      # Run 사이 대기 (기본 5)
 - `lost` 는 발행 종료 후 소비가 `cooldownSeconds` 동안 멈췄을 때 남은 메시지 수다. 소비가 진행 중이면 backlog 를 끝까지 기다린다(최대 30분). 과부하로 쌓인 backlog 는 latency 에 그대로 반영된다.
 - 중단 후 같은 명령을 다시 실행하면 `DONE` 파일이 있는 포인트는 건너뛴다.
 
+### variant 실험 (브로커마다 바꿀 설정이 다를 때)
+
+`vary` 의 변수 이름이 `variant` 이면 값은 이름 붙은 설정 묶음이다. `label` 이 결과 디렉터리 이름이 되고, `broker` 로 특정 브로커에만 적용하며, `set` 은 `base` 위에 깊은 병합으로 덮어쓴다.
+예: `experiments/exp-durability.yml` (Kafka `acks` 3종, RabbitMQ confirm × queue 종류 4종 = 7포인트, 단일 브로커 한정).
+
+```yaml
+vary:
+  variant:
+    - { label: acks-all,       broker: kafka,    set: { kafka: { acks: "all" } } }
+    - { label: quorum-confirm, broker: rabbitmq, set: { rabbitmq: { queueType: quorum, publisherConfirms: true } } }
+```
+
 ### 결과 구조
 
 ```
