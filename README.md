@@ -112,7 +112,7 @@ pauseBetweenRunsSeconds: 5      # Run 사이 대기 (기본 5)
 | `quick` | 5s | 15s | 5s | 1회 | 도구/설정 검증 (**결과 해석 금지**) |
 
 - Exp 1 은 개수 기반이라 시간 warm-up 대신 `warmupMessages`(full: 10%, 최소 1,000개 / quick: 1,000개)를 쓰고, `measureSeconds: 600` 은 시간 **상한**(안전장치)일 뿐이다.
-- **소요 시간(추정)**: Exp 2 full ≈ 36 Run, 약 5시간. Exp 1 full 은 개수 기반이라 이보다 훨씬 짧다. `--dry-run` 으로 확인한다. 발행이 소비보다 훨씬 빠른 과부하 포인트(예: Kafka producers=32, consumer 1)는 backlog 를 다 소비할 때까지 기다리므로 추정보다 길어질 수 있다.
+- **소요 시간(추정)**: Exp 2 full ≈ 36 Run, 약 1.5~2시간(warm-up 30s + measure 90s, 총량 상한 1,200만 건. 계획서 조건 120s/300s 에서 의도적으로 줄였다. 이유는 `experiments/exp2-producer-scaling.yml` 주석 참고). Exp 1 full 은 개수 기반이라 이보다 훨씬 짧다. `--dry-run` 으로 확인한다. 발행이 소비보다 훨씬 빠른 과부하 포인트(예: Kafka producers=32, consumer 1)는 backlog 를 다 소비할 때까지 기다리므로 추정보다 길어질 수 있다.
 - `lost` 는 발행 종료 후 소비가 `cooldownSeconds` 동안 멈췄을 때 남은 메시지 수다. 소비가 진행 중이면 backlog 를 끝까지 기다린다(최대 30분). 과부하로 쌓인 backlog 는 latency 에 그대로 반영된다.
 - 중단 후 같은 명령을 다시 실행하면 `DONE` 파일이 있는 포인트는 건너뛴다.
 

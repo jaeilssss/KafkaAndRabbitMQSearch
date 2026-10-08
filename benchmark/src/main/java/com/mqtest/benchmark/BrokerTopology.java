@@ -19,9 +19,20 @@ final class BrokerTopology {
     private BrokerTopology() {
     }
 
+    private static final long KAFKA_TOPIC_RETENTION_BYTES = 4L * 1024 * 1024 * 1024;
+    private static final long KAFKA_MIN_RETENTION_BYTES = 256L * 1024 * 1024;
+    private static final long KAFKA_SEGMENT_BYTES = 128L * 1024 * 1024;
+
     static void createKafkaTopic(Scenario.KafkaOptions o, String topic) throws ExecutionException, InterruptedException {
         try (AdminClient admin = AdminClient.create(kafkaAdmin(o))) {
-            NewTopic newTopic = new NewTopic(topic, o.partitions(), o.replicationFactor().shortValue());
+            // 디스크 보호: Kafka 는 소비한 메시지도 보존 기간 동안 로그에 남긴다. 시간 기반 실험은 수십 GB 를 쓸 수 있어
+            // (Docker VM 디스크 여유가 작다) 토픽 전체 약 4GB 를 넘는 오래된 세그먼트는 지운다. retention.bytes 는 partition 당 값이다.
+            // 주의: consumer 가 이 보존량보다 더 뒤처지면(lag > 약 4GB) 소비 전에 지워진 메시지가 생긴다.
+            // 그런 과부하 실험은 messageCount 상한으로 총량을 제한한다.
+            long perPartition = Math.max(KAFKA_MIN_RETENTION_BYTES, KAFKA_TOPIC_RETENTION_BYTES / o.partitions());
+            NewTopic newTopic = new NewTopic(topic, o.partitions(), o.replicationFactor().shortValue()).configs(Map.of(
+                    "retention.bytes", Long.toString(perPartition),
+                    "segment.bytes", Long.toString(KAFKA_SEGMENT_BYTES)));
             admin.createTopics(List.of(newTopic)).all().get();
         }
     }

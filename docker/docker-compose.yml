@@ -27,6 +27,7 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_NUM_PARTITIONS: 1
+      KAFKA_LOG_RETENTION_CHECK_INTERVAL_MS: 10000   # 토픽 retention.bytes 초과분을 10초마다 정리 (기본 5분). 디스크 보호용
       KAFKA_HEAP_OPTS: -Xms1g -Xmx1g
     volumes:
       - kafka-data:/var/lib/kafka/data
