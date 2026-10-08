@@ -19,7 +19,7 @@ import java.util.regex.Pattern;
  *
  * <p>변수 이름이 {@code variant} 이면 값은 이름 붙은 설정 묶음이다:
  * {@code {label: acks-all, broker: kafka, set: {kafka: {acks: "all"}}}}. {@code label} 은 결과 디렉터리 이름이 되고,
- * {@code broker} 가 있으면 그 브로커의 포인트에만 쓰이며, {@code set} 은 base 위에 깊은 병합으로 덮어쓴다.
+ * {@code broker} 가 있으면 그 브로커의 포인트에만 쓰이며, {@code set} 은 base 위에 깊은 병합으로 덮어쓴다(프로파일 값이 다시 그 위를 덮어쓴다).
  * 브로커마다 바꿀 설정이 다른 실험(내구성 비교 등)에 쓴다.
  *
  * <p>profile 에서만 쓸 수 있는 보조 필드: {@code warmupMessagesPercent}, {@code warmupMessagesMin}
@@ -140,6 +140,9 @@ public record ExperimentDefinition(
                 }
                 String valueText = variant ? value.get("label").asText() : value.asText();
                 ObjectNode tree = ((ObjectNode) base).deepCopy();
+                if (variant && value.has("set")) {
+                    merge(tree, value.get("set")); // 프로파일 값이 variant 값보다 우선한다 (예: quick 에서 messageCount 축소)
+                }
                 Integer percent = null;
                 Integer min = null;
                 for (Iterator<Map.Entry<String, JsonNode>> it = profileNode.fields(); it.hasNext(); ) {
@@ -150,11 +153,7 @@ public record ExperimentDefinition(
                         default -> tree.set(e.getKey(), e.getValue());
                     }
                 }
-                if (variant) {
-                    if (value.has("set")) {
-                        merge(tree, value.get("set"));
-                    }
-                } else {
+                if (!variant) {
                     tree.set(variable.getKey(), value);
                 }
                 tree.put("broker", broker.name().toLowerCase());

@@ -1,0 +1,46 @@
+# Exp 8 + Exp 9. Slow Consumer & Backpressure (연구 계획서 §17, §18, §19, H7) — 블로그 2편
+# 발행 속도를 고정하고 consumer 처리 시간을 0/1/5/10/50ms 로 늘려, 소비가 발행을 못 따라갈 때의
+# backlog(Kafka consumer lag / RabbitMQ queue depth) 증가, 자원 사용, 발행 종료 후 따라잡는 시간을 본다.
+#
+# 설계 결정:
+#  - 계획서 Exp 9 의 "발행 100K/s vs 소비 50K/s, 10분" 은 이 환경에서 불가능하다. RabbitMQ 의 최대 발행이 약 35K msg/s 이고,
+#    +50K/s 를 10분 쌓으면 약 30GB 라 디스크/메모리를 위협한다. 대신 비율 개념(발행 > 소비)만 유지해 규모를 줄였다.
+#  - 발행 3,000 msg/s 고정, consumer 16개(Kafka partition 16). 용량(quick 실측 기준 대략):
+#    0ms 제한 없음 / 1ms 약 12K / 5ms 약 3K(발행과 비슷, 경계) / 10ms 약 1.2K / 50ms 약 320 msg/s.
+#    0ms, 1ms 는 발행을 따라가는 대조군, 5ms 는 포화 경계, 10ms 와 50ms 에서 backlog 가 뚜렷하게 쌓인다.
+#  - 발행 구간은 warm-up 20s + measure 60s 로 짧게 한다. 러너는 발행 종료 후 backlog 를 다 소비할 때까지 기다린다
+#    (= catch-up 시간, 소비가 진행되는 동안 최대 30분). 50ms 포인트는 backlog 약 21만 건을 약 320 msg/s 로 소비하므로
+#    Run 당 약 11~12분이 걸리고 이 포인트가 전체 시간(약 2시간)을 좌우한다. 발행 구간이나 속도를 더 늘리면
+#    30분 상한에 걸려 lost 가 생길 수 있으니 주의한다.
+#  - backlog 추이와 catch-up 곡선은 포인트별 timeseries.csv (consumerLag / queueDepth) 에서 얻는다.
+experiment: exp-slow-consumer
+description: consumer 처리 지연에 따른 backlog 증가와 따라잡기 비교
+brokers: [kafka, rabbitmq]
+base:
+  messageSizeBytes: 1024
+  producers: 1
+  consumers: 16
+  targetRatePerSec: 3000
+  kafka:
+    partitions: 16
+    replicationFactor: 1
+    acks: "1"
+  rabbitmq:
+    queueType: classic
+    publisherConfirms: false
+    prefetch: 250
+vary:
+  consumerDelayMs: [0, 1, 5, 10, 50]
+profiles:
+  full:
+    warmupSeconds: 20
+    measureSeconds: 60
+    cooldownSeconds: 60
+    repetitions: 3
+    pauseBetweenRunsSeconds: 10
+  quick:
+    warmupSeconds: 5
+    measureSeconds: 15
+    cooldownSeconds: 10
+    repetitions: 1
+    pauseBetweenRunsSeconds: 3

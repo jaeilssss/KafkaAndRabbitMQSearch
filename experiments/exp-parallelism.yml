@@ -1,0 +1,66 @@
+# Exp 3 + Exp 4. Parallelism: Consumer Scaling x Kafka Partition (연구 계획서 §12, §13, H3) — 블로그 1편
+# consumer 1/2/4/8/16 x Kafka partition 1/3/12, RabbitMQ 는 queue 1개에 consumer 1/2/4/8/16.
+# 질문: consumer 를 늘리면 빨라지는가? Kafka 에서는 partition 수가 상한이 되는가(H3)?
+#
+# 설계 결정:
+#  - consumer 처리 비용 1ms 를 시뮬레이션한다(consumerDelayMs: 1, "DB 조회" 가정). 처리 비용이 0 이면 consumer 1개가 이미 발행을
+#    따라가 consumer 수의 효과가 보이지 않는다. consumer 1개의 상한이 약 740 msg/s(quick 실측, sleep(1ms) 가 실제로는 약 1.35ms)가 되므로, 이론상 처리량 = min(consumer, partition) x 약 740.
+#  - 개수 기반(200K 건) 종료로 backlog 총량을 약 200MB 로 제한한다. producer 4개가 무제한 속도로 발행해 consumer 가 항상 병목이다.
+#    consumer 처리량은 발행 종료 후 backlog 를 모두 소비할 때까지의 구간으로 계산된다.
+#  - 계획서의 partition 값 1/3/6/12 중 3 과 12 를 골라 1/3/12 로 줄였다(포인트 수와 시간 때문). 6 을 추가하려면 variant 를 넣으면 된다.
+#  - 이 실험이 Exp 4 의 일부(partition 증가 효과)만 다룬다. partition 32 까지의 관리 비용은 범위 밖이다.
+#  - RabbitMQ 는 queue 1개다. 여러 queue 로 나누는 병렬성은 이 하네스가 지원하지 않는다(범위 밖).
+#  - 러너 JVM 이 producer 4 + consumer 최대 16 + 부하를 한 프로세스로 돌리므로 결과의 generatorSaturated 를 반드시 확인한다.
+experiment: exp-parallelism
+description: consumer 수와 Kafka partition 수에 따른 소비 처리량 변화
+brokers: [kafka, rabbitmq]
+base:
+  messageSizeBytes: 1024
+  producers: 4
+  messageCount: 200000
+  consumerDelayMs: 1
+  kafka:
+    partitions: 1
+    replicationFactor: 1
+    acks: "1"
+  rabbitmq:
+    queueType: classic
+    publisherConfirms: false
+    prefetch: 250
+vary:
+  variant:
+    - { label: p1-c1, broker: kafka,    set: { consumers: 1, kafka: { partitions: 1 } } }
+    - { label: p1-c2, broker: kafka,    set: { consumers: 2, kafka: { partitions: 1 } } }
+    - { label: p1-c4, broker: kafka,    set: { consumers: 4, kafka: { partitions: 1 } } }
+    - { label: p1-c8, broker: kafka,    set: { consumers: 8, kafka: { partitions: 1 } } }
+    - { label: p1-c16, broker: kafka,    set: { consumers: 16, kafka: { partitions: 1 } } }
+    - { label: p3-c1, broker: kafka,    set: { consumers: 1, kafka: { partitions: 3 } } }
+    - { label: p3-c2, broker: kafka,    set: { consumers: 2, kafka: { partitions: 3 } } }
+    - { label: p3-c4, broker: kafka,    set: { consumers: 4, kafka: { partitions: 3 } } }
+    - { label: p3-c8, broker: kafka,    set: { consumers: 8, kafka: { partitions: 3 } } }
+    - { label: p3-c16, broker: kafka,    set: { consumers: 16, kafka: { partitions: 3 } } }
+    - { label: p12-c1, broker: kafka,    set: { consumers: 1, kafka: { partitions: 12 } } }
+    - { label: p12-c2, broker: kafka,    set: { consumers: 2, kafka: { partitions: 12 } } }
+    - { label: p12-c4, broker: kafka,    set: { consumers: 4, kafka: { partitions: 12 } } }
+    - { label: p12-c8, broker: kafka,    set: { consumers: 8, kafka: { partitions: 12 } } }
+    - { label: p12-c16, broker: kafka,    set: { consumers: 16, kafka: { partitions: 12 } } }
+    - { label: c1,    broker: rabbitmq, set: { consumers: 1 } }
+    - { label: c2,    broker: rabbitmq, set: { consumers: 2 } }
+    - { label: c4,    broker: rabbitmq, set: { consumers: 4 } }
+    - { label: c8,    broker: rabbitmq, set: { consumers: 8 } }
+    - { label: c16,    broker: rabbitmq, set: { consumers: 16 } }
+profiles:
+  full:
+    measureSeconds: 900         # 시간 상한(안전장치)
+    cooldownSeconds: 60
+    repetitions: 3
+    pauseBetweenRunsSeconds: 10
+    warmupMessagesPercent: 5
+    warmupMessagesMin: 1000
+  quick:
+    measureSeconds: 300
+    cooldownSeconds: 10
+    repetitions: 1
+    pauseBetweenRunsSeconds: 3
+    messageCount: 20000
+    warmupMessages: 1000

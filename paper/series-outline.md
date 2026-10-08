@@ -16,8 +16,8 @@
 |----|------|-----------|------|
 | 1 | Exp 1 Baseline (`experiments/exp1-baseline.yml`) | 튜닝 없는 기본 처리량·지연 차이 | **full 완료** (`results/exp1-baseline/full/`) |
 | 2 | Exp 2 Producer Scaling (`experiments/exp2-producer-scaling.yml`) | 부하 증가 시 포화 지점(saturation point) | 정의 완료, **full 미실행** (약 5시간) |
-| 3 | 병렬성 = Exp 3 Consumer Scaling + Exp 4 Partition Scaling | consumer 를 늘리면 빨라지는가, Kafka 는 partition 수가 상한인가 (H3) | **정의 파일 없음** (변수 2개라 variant 로 설계 필요) |
-| 4 | Exp 7 Message Size | msg/s 는 줄지만 MB/s 는 다르게 움직이는가 (H4) | **정의 파일 없음** |
+| 3 | 병렬성 = Exp 3 Consumer Scaling + Exp 4 Partition Scaling | consumer 를 늘리면 빨라지는가, Kafka 는 partition 수가 상한인가 (H3) 정의 완료 (`experiments/exp-parallelism.yml`, 20포인트), quick 검증만 함, **full 미실행** |
+| 4 | Exp 7 Message Size (`experiments/exp7-message-size.yml`) | msg/s 는 줄지만 MB/s 는 다르게 움직이는가 (H4) | 정의 완료 (10포인트), quick 검증만 함, **full 미실행** |
 
 Exp 1 에서 지금까지 보인 것(중간 관찰, "왜"는 미검증):
 - 1M 에서 Kafka 처리량이 RabbitMQ 의 약 1.65배, 반면 P99 는 Kafka 가 더 높았다.
@@ -33,7 +33,7 @@ Exp 1 에서 지금까지 보인 것(중간 관찰, "왜"는 미검증):
 | 장 | 실험 | 배우는 것 | 상태 |
 |----|------|-----------|------|
 | 5 | 내구성 비교 `exp-durability` (`experiments/exp-durability.yml`, 계획서 RQ6 / H8) | 응답 대기·내구성 수준의 성능 비용 | 정의 완료, quick 검증만 함, **full 미실행** (27 Run, 상한 약 3시간 45분) |
-| 6 | 느린 소비자와 backlog = Exp 8 Slow Consumer + Exp 9 Backpressure (H7) | backlog 가 쌓이는 모양, 자원 사용, 따라잡는 속도 | **정의 파일 없음** (`consumerDelayMs` 필드만 있음) |
+| 6 | 느린 소비자와 backlog = Exp 8 Slow Consumer + Exp 9 Backpressure (H7) | backlog 가 쌓이는 모양, 자원 사용, 따라잡는 속도 정의 완료 (`experiments/exp-slow-consumer.yml`, 10포인트), quick 검증만 함, **full 미실행** |
 
 내구성 실험 설계 메모:
 - **Benchmark A (최대 성능)**: Kafka `acks-0` / `acks-1`, RabbitMQ `classic-noconfirm`.
@@ -57,9 +57,12 @@ Exp 1 에서 지금까지 보인 것(중간 관찰, "왜"는 미검증):
 
 - [x] Exp 1 full
 - [ ] Exp 2 full
-- [ ] 병렬성(Exp 3+4) 실험 정의 + 실행
-- [ ] Exp 7 실험 정의 + 실행
+- [x] 병렬성(Exp 3+4) 실험 정의 (실행은 아직)
+- [ ] 병렬성(Exp 3+4) full 실행
+- [x] Exp 7 실험 정의 (실행은 아직)
+- [ ] Exp 7 full 실행
 - [ ] `exp-durability` full
-- [ ] 느린 소비자 + backlog(Exp 8+9) 실험 정의 + 실행
+- [x] 느린 소비자 + backlog(Exp 8+9) 실험 정의 (실행은 아직)
+- [ ] 느린 소비자 + backlog full 실행
 - [ ] 보고서 템플릿을 블로그 형식으로 단순화 (첫 결과 정리 후)
 - [ ] 편별 최종 제목 확정

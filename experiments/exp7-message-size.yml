@@ -1,0 +1,47 @@
+# Exp 7. Message Size (연구 계획서 §16, H4) — 블로그 1편
+# 메시지 크기 100B / 1KB / 10KB / 100KB / 1MB 에 따른 msg/s 와 MB/s 변화.
+# producer 1 / consumer 1 / Kafka partition 1 / RabbitMQ queue 1, 내구성은 각 브로커 기본값 (Exp 1 과 같은 구성).
+#
+# 설계 결정:
+#  - 크기별 총 데이터량을 약 1GB 로 맞춰(messageCount x 크기) 개수 기반으로 종료한다. 시간 기반이면 큰 메시지에서 발행이
+#    소비보다 빨라 backlog 가 디스크(Kafka 로그)와 메모리(RabbitMQ)에 수십 GB 쌓일 수 있다.
+#  - "1MB" 는 1,000,000 바이트다. Kafka 기본 max.request.size / message.max.bytes 가 1,048,576 바이트라
+#    1,048,576 바이트 payload 는 헤더 때문에 거부된다. 1KB 는 1,024, 10KB 는 10,240, 100KB 는 102,400 바이트다.
+#  - 100B 는 1천만 건이라 포인트당 수 분이 걸린다. 1MB 는 1천 건이라 Run 이 10~15초로 짧아 변동이 클 수 있으니 stddev 를 확인한다.
+#  - 큰 메시지(1MB)는 RabbitMQ 메모리 경보(memory alarm)로 발행이 막힐 수 있다. 결과의 처리량이 비정상적으로 낮으면 확인한다.
+experiment: exp7-message-size
+description: 메시지 크기에 따른 처리량(msg/s, MB/s)과 지연, 자원 사용 비교
+brokers: [kafka, rabbitmq]
+base:
+  producers: 1
+  consumers: 1
+  kafka:
+    partitions: 1
+    replicationFactor: 1
+    acks: "1"
+  rabbitmq:
+    queueType: classic
+    publisherConfirms: false
+    prefetch: 250
+vary:
+  variant:
+    - { label: size-100B, set: { messageSizeBytes: 100, messageCount: 10000000 } }
+    - { label: size-1KB, set: { messageSizeBytes: 1024, messageCount: 1000000 } }
+    - { label: size-10KB, set: { messageSizeBytes: 10240, messageCount: 100000 } }
+    - { label: size-100KB, set: { messageSizeBytes: 102400, messageCount: 10000 } }
+    - { label: size-1MB, set: { messageSizeBytes: 1000000, messageCount: 1000 } }
+profiles:
+  full:
+    measureSeconds: 1800        # 시간 상한(안전장치). 개수가 먼저 채워진다. 100B 는 1천만 건이라 길다.
+    cooldownSeconds: 60
+    repetitions: 3
+    pauseBetweenRunsSeconds: 10
+    warmupMessagesPercent: 10
+    warmupMessagesMin: 100
+  quick:
+    measureSeconds: 300
+    cooldownSeconds: 5
+    repetitions: 1
+    pauseBetweenRunsSeconds: 3
+    messageCount: 500           # 도구 검증용 (variant 의 messageCount 를 덮어쓴다)
+    warmupMessages: 50

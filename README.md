@@ -90,6 +90,12 @@ pauseBetweenRunsSeconds: 5      # Run 사이 대기 (기본 5)
 |------|------|-----------|-----------|
 | `exp1-baseline.yml` | `messageCount` 10K / 100K / 1M (producer 1, consumer 1, 1KB, partition 1 / queue 1) | 6 | 메시지 수 도달 (`warmupMessages` 로 앞부분 제외) |
 | `exp2-producer-scaling.yml` | `producers` 1 / 2 / 4 / 8 / 16 / 32 | 12 | 시간 (warm-up + measure) |
+| `exp7-message-size.yml` | 메시지 크기 100B / 1KB / 10KB / 100KB / 1MB (크기별 총 약 1GB) | 10 | 메시지 수 도달 |
+| `exp-parallelism.yml` | consumer 1/2/4/8/16 × Kafka partition 1/3/12 (RabbitMQ 는 consumer 만) | 20 | 메시지 수 도달 |
+| `exp-slow-consumer.yml` | `consumerDelayMs` 0 / 1 / 5 / 10 / 50 (발행 4,000 msg/s 고정) | 10 | 시간 + backlog 소비 완료까지 |
+| `exp-durability.yml` | variant: Kafka `acks` 3종, RabbitMQ queue 종류 × confirm 방식 6종 | 9 | 시간 (warm-up + measure) |
+
+각 YAML 상단 주석에 설계 결정과 한계가 적혀 있다. 소요 시간은 `--dry-run` 의 상한 추정이 최악 기준(시간 상한까지 도는 경우)이라 실제보다 훨씬 길게 나온다.
 
 ```bash
 ./scripts/run-experiment.sh experiments/exp2-producer-scaling.yml --profile=quick --dry-run   # 계획과 소요 시간 상한만 출력

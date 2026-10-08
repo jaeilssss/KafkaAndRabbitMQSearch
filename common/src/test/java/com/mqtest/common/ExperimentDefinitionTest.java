@@ -148,4 +148,26 @@ class ExperimentDefinitionTest {
         assertThatThrownBy(() -> ExperimentDefinition.parse(duplicate)).hasRootCauseInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> ExperimentDefinition.parse(forbidden)).hasRootCauseInstanceOf(IllegalArgumentException.class);
     }
+
+    @Test
+    void profileOverridesVariantValues() throws IOException {
+        String yaml = """
+                experiment: exp-size
+                brokers: [kafka]
+                vary:
+                  variant:
+                    - { label: big, set: { messageSizeBytes: 1000000, messageCount: 1000 } }
+                profiles:
+                  full:  { warmupMessagesPercent: 10, warmupMessagesMin: 100 }
+                  quick: { messageCount: 500, warmupMessages: 50 }
+                """;
+        ExperimentDefinition def = ExperimentDefinition.parse(yaml);
+
+        Scenario full = def.expand("full", Set.of()).get(0).scenario();
+        assertThat(full.messageCount()).isEqualTo(1000);
+        assertThat(full.warmupMessages()).isEqualTo(100);
+        Scenario quick = def.expand("quick", Set.of()).get(0).scenario();
+        assertThat(quick.messageCount()).isEqualTo(500); // 프로파일이 variant 를 덮어쓴다
+        assertThat(quick.messageSizeBytes()).isEqualTo(1000000);
+    }
 }
