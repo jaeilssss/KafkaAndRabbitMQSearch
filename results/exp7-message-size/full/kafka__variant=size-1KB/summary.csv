@@ -1,0 +1,4 @@
+startedAt,scenario,broker,messageSizeBytes,producers,consumers,sent,received,lost,producerMsgPerSec,consumerMsgPerSec,producerMBPerSec,consumerMBPerSec,p50Ms,p95Ms,p99Ms,p999Ms,maxMs
+2026-10-08T15:13:47.994417Z,exp7-message-size-kafka-variant-size-1KB,KAFKA,1024,1,1,1000000,1000000,0,58828.64,58826.67,60.2405,60.2385,489.161,677.380,767.033,792.199,793.772
+2026-10-08T15:14:23.065487Z,exp7-message-size-kafka-variant-size-1KB,KAFKA,1024,1,1,1000000,1000000,0,59693.24,59691.95,61.1259,61.1246,483.131,665.846,745.538,751.305,753.402
+2026-10-08T15:14:57.915569Z,exp7-message-size-kafka-variant-size-1KB,KAFKA,1024,1,1,1000000,1000000,0,59536.89,59536.24,60.9658,60.9651,484.966,637.534,743.440,786.956,789.053

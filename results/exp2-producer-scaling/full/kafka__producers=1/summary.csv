@@ -1,0 +1,4 @@
+startedAt,scenario,broker,messageSizeBytes,producers,consumers,sent,received,lost,producerMsgPerSec,consumerMsgPerSec,producerMBPerSec,consumerMBPerSec,p50Ms,p95Ms,p99Ms,p999Ms,maxMs
+2026-10-08T15:38:39.379395Z,exp2-producer-scaling-kafka-producers-1,KAFKA,1024,1,1,7260286,7260286,0,61389.67,61044.15,62.8630,62.5092,490.209,595.591,721.945,775.422,789.578
+2026-10-08T15:40:58.897189Z,exp2-producer-scaling-kafka-producers-1,KAFKA,1024,1,1,7356841,7356841,0,61019.00,60682.16,62.4835,62.1385,492.831,604.504,743.440,780.141,797.442
+2026-10-08T15:43:18.076641Z,exp2-producer-scaling-kafka-producers-1,KAFKA,1024,1,1,7380901,7380901,0,61416.83,61070.91,62.8908,62.5366,489.161,599.785,737.673,797.442,808.976

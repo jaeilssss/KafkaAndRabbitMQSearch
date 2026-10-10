@@ -1,0 +1,23 @@
+{
+  "experiment" : "exp2-producer-scaling",
+  "profile" : "full",
+  "definitionSha256" : "8ed9b90b9d170057088733ed5bea50689226195dd227fd841b1f1edb4d563c5a",
+  "gitRevision" : "751ccc3d969cd656786fc5076e8c2111c9c4d123",
+  "startedAt" : "2026-10-09T08:51:45.007975Z",
+  "brokers" : [ "KAFKA" ],
+  "pointCount" : 6,
+  "runningContainers" : [ "mqt-cadvisor", "mqt-grafana", "mqt-kafka", "mqt-kafka-exporter", "mqt-prometheus" ],
+  "environment" : {
+    "os" : "Mac OS X 26.6.2 aarch64",
+    "jdk" : "Amazon.com Inc. 22.0.2",
+    "cpus" : "10",
+    "jvmMaxHeapMB" : "8192",
+    "springBoot" : "3.3.5",
+    "KAFKA_IMAGE" : "apache/kafka:3.8.0",
+    "KAFKA_EXPORTER_IMAGE" : "danielqsj/kafka-exporter:v1.8.0",
+    "RABBITMQ_IMAGE" : "rabbitmq:3.13.7-management",
+    "PROMETHEUS_IMAGE" : "prom/prometheus:v2.54.1",
+    "GRAFANA_IMAGE" : "grafana/grafana:11.2.0",
+    "CADVISOR_IMAGE" : "gcr.io/cadvisor/cadvisor:v0.49.1"
+  }
+}

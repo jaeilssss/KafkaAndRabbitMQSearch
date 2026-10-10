@@ -6,6 +6,8 @@
 # 디스크 보호 (중요): Docker VM 디스크 여유가 약 22GB 인데, Kafka producers=32 는 consumer 1개가 못 따라가 backlog 가
 # 초당 약 9만 건씩 쌓인다(quick 실측: 30초에 약 470만 건). 시간 기반(약 420초)이면 약 56GB 가 되어 디스크가 가득 찬다.
 # consumer/partition 을 늘려도 소비가 약 67K msg/s 에서 막혀 해결되지 않았다(quick 실측).
+# (주의: 토픽 보존 상한 기본값 4GB 로 돌리면 backlog 가 4GB 를 넘는 Kafka producers 8/16/32 에서 소비 전에 메시지가 지워져
+#  lost 가 생긴다 — 1차 full 실행에서 확인했다. 그래서 이 실험은 retentionBytes 를 16GB 로 올린다.)
 # 그래서 messageCount 상한(1,200만 건 = 약 12GB)을 두고 시간 기반 종료와 "먼저 도달하는 쪽"으로 끝낸다.
 #  - 측정 구간은 계획서의 300초 대신 90초로 줄였다(반복 3회는 유지). 안정 구간 처리량은 수십 초면 충분하고 분산은 반복으로 본다.
 #    첫 full 결과에서 Run 간 stddev 가 평균의 약 5% 이내인지 확인하고, 크면 해당 포인트만 늘려 다시 돌린다.
@@ -24,6 +26,7 @@ base:
     partitions: 1
     replicationFactor: 1
     acks: "1"
+    retentionBytes: 17179869184   # 16GB. 총량 상한(약 12GB)보다 크게 잡아 보존 삭제로 인한 lost 를 막는다
   rabbitmq:
     queueType: classic
     publisherConfirms: false

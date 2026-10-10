@@ -31,6 +31,7 @@
 ## 디스크 보호 (중요)
 
 - Docker VM 디스크 여유가 작다(2026-10-08 기준 약 22GB). Kafka 는 소비한 메시지도 토픽을 지울 때까지 로그에 남기므로, 시간 기반 + 무제한 속도 실험은 수십 GB 를 쓸 수 있다.
-- 토픽에는 `retention.bytes`(약 4GB)가 걸려 있다(`BrokerTopology`). 단 consumer 가 그보다 더 뒤처지면 소비 전에 메시지가 지워지므로, **소비가 못 따라가는 실험은 `messageCount` 상한으로 총량을 제한한다** (예: Exp 2 는 1,200만 건).
+- 토픽에는 `retention.bytes`(기본 약 4GB, `kafka.retentionBytes` 로 변경)가 걸려 있다(`BrokerTopology`). consumer 가 그보다 더 뒤처지면 소비 전에 메시지가 지워져 `lost` 가 생긴다(Exp 2 1차 full 에서 Kafka producers 8/16/32 가 실제로 이렇게 오염됐다).
+  **소비가 못 따라가는 실험은 `messageCount` 상한으로 총량을 제한하고, `kafka.retentionBytes` 를 그 총량보다 크게 올린다** (예: Exp 2 는 1,200만 건 ≈ 12GB, retentionBytes 16GB).
 - 새 실험 정의를 만들 때: 예상 발행량(msg/s × 시간 × 메시지 크기)이 수 GB 를 넘으면 `messageCount` 상한을 둔다.
 - 실험 시간은 계획서의 보수적 조건(warm-up 120s / measure 300s)을 그대로 따르지 않아도 된다. 반복(3회)을 유지하고 측정 창을 줄이되, 첫 full 결과에서 Run 간 stddev 를 확인한다. 줄였다면 글에 명시한다.

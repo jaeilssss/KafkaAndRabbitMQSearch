@@ -1,0 +1,4 @@
+startedAt,scenario,broker,messageSizeBytes,producers,consumers,sent,received,lost,producerMsgPerSec,consumerMsgPerSec,producerMBPerSec,consumerMBPerSec,p50Ms,p95Ms,p99Ms,p999Ms,maxMs
+2026-10-08T16:43:19.850545Z,exp2-producer-scaling-rabbitmq-producers-4,RABBITMQ,1024,4,1,4560918,4560918,0,37766.33,37277.07,38.6727,38.1717,1227.882,1522.532,1661.993,1780.482,1859.125
+2026-10-08T16:45:40.122860Z,exp2-producer-scaling-rabbitmq-producers-4,RABBITMQ,1024,4,1,4546997,4546997,0,37786.93,37356.00,38.6938,38.2525,1047.527,1384.120,1528.824,1625.293,1682.964
+2026-10-08T16:48:00.291305Z,exp2-producer-scaling-rabbitmq-producers-4,RABBITMQ,1024,4,1,4376179,4376179,0,36150.92,35683.08,37.0185,36.5395,1062.732,1414.529,1546.650,1641.021,1701.839

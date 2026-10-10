@@ -115,7 +115,11 @@ public record Scenario(
             String acks,
             Integer lingerMs,
             Integer batchSizeBytes,
-            String compression) {
+            String compression,
+            Long retentionBytes) {
+
+        /** 토픽 전체 보존 상한 기본값(약 4GB). 디스크 보호용이다. */
+        public static final long DEFAULT_RETENTION_BYTES = 4L * 1024 * 1024 * 1024;
 
         public KafkaOptions {
             bootstrapServers = bootstrapServers == null ? "localhost:9092" : bootstrapServers;
@@ -125,13 +129,19 @@ public record Scenario(
             lingerMs = lingerMs == null ? Integer.valueOf(0) : lingerMs;
             batchSizeBytes = batchSizeBytes == null ? Integer.valueOf(16384) : batchSizeBytes;
             compression = compression == null ? "none" : compression;
+            // 소비가 못 따라가는 실험은 backlog 가 이 값을 넘으면 소비 전에 메시지가 지워져 lost 가 생긴다.
+            // 그런 실험은 messageCount 상한으로 총량을 제한하고, 이 값은 그 총량보다 크게 잡는다.
+            retentionBytes = retentionBytes == null ? Long.valueOf(DEFAULT_RETENTION_BYTES) : retentionBytes;
             if (partitions <= 0 || replicationFactor <= 0) {
                 throw new IllegalArgumentException("kafka.partitions and kafka.replicationFactor must be > 0");
+            }
+            if (retentionBytes <= 0) {
+                throw new IllegalArgumentException("kafka.retentionBytes must be > 0");
             }
         }
 
         public static KafkaOptions defaults() {
-            return new KafkaOptions(null, null, null, null, null, null, null);
+            return new KafkaOptions(null, null, null, null, null, null, null, null);
         }
     }
 

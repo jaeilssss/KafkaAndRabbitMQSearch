@@ -170,4 +170,21 @@ class ExperimentDefinitionTest {
         assertThat(quick.messageCount()).isEqualTo(500); // 프로파일이 variant 를 덮어쓴다
         assertThat(quick.messageSizeBytes()).isEqualTo(1000000);
     }
+
+    @Test
+    void kafkaRetentionBytesDefaultsAndCanBeOverridden() throws IOException {
+        String yaml = """
+                experiment: exp-ret
+                brokers: [kafka]
+                base:
+                  kafka: { retentionBytes: 17179869184 }
+                vary:
+                  producers: [1]
+                profiles:
+                  quick: { measureSeconds: 5 }
+                """;
+        assertThat(ExperimentDefinition.parse(yaml).expand("quick", Set.of()).get(0).scenario().kafka().retentionBytes())
+                .isEqualTo(17179869184L);
+        assertThat(Scenario.KafkaOptions.defaults().retentionBytes()).isEqualTo(Scenario.KafkaOptions.DEFAULT_RETENTION_BYTES);
+    }
 }

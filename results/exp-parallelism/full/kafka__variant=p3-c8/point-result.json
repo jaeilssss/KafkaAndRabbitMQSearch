@@ -1,0 +1,50 @@
+{
+  "targetRatePerSec" : null,
+  "runs" : 3,
+  "producerMsgPerSec" : {
+    "mean" : 161724.5311191352,
+    "median" : 161564.5801011861,
+    "stddev" : 4975.584974895016
+  },
+  "consumerMsgPerSec" : {
+    "mean" : 1893.5053350110463,
+    "median" : 1889.763297878348,
+    "stddev" : 7.6197576016217905
+  },
+  "consumerMBPerSec" : {
+    "mean" : 1.9389494630513113,
+    "median" : 1.9351176170274285,
+    "stddev" : 0.007802631784060768
+  },
+  "p50Ms" : {
+    "mean" : 52803.49115633333,
+    "median" : 53016.002559,
+    "stddev" : 397.49375709174984
+  },
+  "p95Ms" : {
+    "mean" : 95026.15142299999,
+    "median" : 95227.478015,
+    "stddev" : 408.20728339007826
+  },
+  "p99Ms" : {
+    "mean" : 98761.87818566668,
+    "median" : 98985.574399,
+    "stddev" : 387.4532069541009
+  },
+  "lost" : {
+    "mean" : 0.0,
+    "median" : 0.0,
+    "stddev" : 0.0
+  },
+  "lostTotal" : 0,
+  "achievedRatio" : null,
+  "generatorSaturated" : false,
+  "resources" : {
+    "cpuCoresAvg" : 0.16768633617281084,
+    "cpuCoresMax" : 0.1265158421345201,
+    "memoryMaxBytes" : 1.10848E9,
+    "netRxBytesPerSec" : 1745.4068747030171,
+    "netTxBytesPerSec" : 3638.868685780953,
+    "diskWriteBytesPerSec" : 20796.567099210835
+  }
+}

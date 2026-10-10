@@ -1,0 +1,4 @@
+startedAt,scenario,broker,messageSizeBytes,producers,consumers,sent,received,lost,producerMsgPerSec,consumerMsgPerSec,producerMBPerSec,consumerMBPerSec,p50Ms,p95Ms,p99Ms,p999Ms,maxMs
+2026-10-08T15:35:44.140668Z,exp7-message-size-rabbitmq-variant-size-100KB,RABBITMQ,102400,1,1,10000,10000,0,1072.62,1069.83,109.8358,109.5504,20.431,24.379,26.558,29.245,30.999
+2026-10-08T15:36:12.559457Z,exp7-message-size-rabbitmq-variant-size-100KB,RABBITMQ,102400,1,1,10000,10000,0,1077.46,1075.42,110.3315,110.1229,18.399,22.282,24.642,31.277,35.488
+2026-10-08T15:36:40.947063Z,exp7-message-size-rabbitmq-variant-size-100KB,RABBITMQ,102400,1,1,10000,10000,0,1068.93,1066.56,109.4588,109.2158,18.366,23.380,84.607,89.194,94.306

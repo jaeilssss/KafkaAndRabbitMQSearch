@@ -1,0 +1,5 @@
+time,onAC,batteryPercent,thermalWarning,performanceWarning,cpuSpeedLimit
+2026-10-08T15:34:20.712998Z,true,77,false,false,
+2026-10-08T15:34:50.756072Z,true,77,false,false,
+2026-10-08T15:35:20.795605Z,true,77,false,false,
+2026-10-08T15:35:38.066304Z,true,77,false,false,
